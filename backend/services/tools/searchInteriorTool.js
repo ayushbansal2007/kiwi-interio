@@ -1,7 +1,7 @@
 
 const Interior =
   require(
-    "../../models/interiorModel"
+    "../../models/InteriorModel"
   );
 
 async function searchInteriorTool({

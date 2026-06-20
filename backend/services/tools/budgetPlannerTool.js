@@ -1,6 +1,6 @@
 const Interior =
   require(
-    "../../models/interiorModel"
+    "../../models/InteriorModel"
   );
 
 const normalizeCategory =
