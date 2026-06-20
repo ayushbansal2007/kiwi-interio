@@ -52,7 +52,7 @@ function InteriorList() {
 
           const res =
             await fetch(
-              "http://localhost:5000/api/interiors"
+              "https://kiwi-interio.onrender.com/api/interiors"
             );
 
           const data =

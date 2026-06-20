@@ -38,7 +38,7 @@ function AIAssistant() {
         const token = localStorage.getItem("token");
         if (!token) return;
 
-        const res = await axios.get("http://localhost:5000/api/chat-history", {
+        const res = await axios.get("https://kiwi-interio.onrender.com/api/chat-history", {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -130,7 +130,7 @@ function AIAssistant() {
       const token = localStorage.getItem("token");
 
       const res = await axios.post(
-        "http://localhost:5000/api/ai",
+        "https://kiwi-interio.onrender.com/api/ai",
         { message: currentMessage },
         { headers: { Authorization: `Bearer ${token}` } }
       );

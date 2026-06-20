@@ -16,7 +16,7 @@ function Register() {
     e.preventDefault();
 
     const response = await fetch(
-      "http://localhost:5000/api/auth/register",
+      "https://kiwi-interio.onrender.com/api/auth/register",
       {
         method: "POST",
         headers: {

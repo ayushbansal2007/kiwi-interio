@@ -14,7 +14,7 @@ function Profile() {
   useEffect(() => {
     const token = localStorage.getItem("token");
 
-    fetch("http://localhost:5000/api/auth/profile", {
+    fetch("https://kiwi-interio.onrender.com/api/auth/profile", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
