@@ -1,0 +1,172 @@
+[
+  {
+    "title": "Luxury Wall Decor",
+    "description": "Elegant luxury wall decor for premium home interiors.",
+    "image": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
+    "category": "home-decor",
+    "subcategory": "wall-decor",
+    "style": "luxury",
+    "roomType": "living-room",
+    "tags": [
+      "home decor",
+      "wall decor",
+      "luxury",
+      "premium",
+      "gift"
+    ],
+    "price": 12000
+  },
+  {
+    "title": "Modern Table Lamp",
+    "description": "Stylish modern lamp for bedroom and living room decor.",
+    "image": "https://images.unsplash.com/photo-1513694203232-719a280e022f",
+    "category": "home-decor",
+    "subcategory": "lamp",
+    "style": "modern",
+    "roomType": "bedroom",
+    "tags": [
+      "lamp",
+      "lighting",
+      "home decor",
+      "modern",
+      "gift"
+    ],
+    "price": 5500
+  },
+  {
+    "title": "Premium Flower Vase",
+    "description": "Elegant flower vase perfect for luxury homes.",
+    "image": "https://images.unsplash.com/photo-1517705008128-361805f42e86",
+    "category": "home-decor",
+    "subcategory": "vase",
+    "style": "luxury",
+    "roomType": "living-room",
+    "tags": [
+      "vase",
+      "flower",
+      "decor",
+      "gift",
+      "premium"
+    ],
+    "price": 4200
+  },
+  {
+    "title": "Minimal Wall Mirror",
+    "description": "Minimal mirror design for modern home decor.",
+    "image": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
+    "category": "home-decor",
+    "subcategory": "mirror",
+    "style": "minimal",
+    "roomType": "bedroom",
+    "tags": [
+      "mirror",
+      "minimal",
+      "home decor",
+      "modern",
+      "stylish"
+    ],
+    "price": 6800
+  },
+  {
+    "title": "Luxury Candle Set",
+    "description": "Premium decorative candle set for cozy interiors.",
+    "image": "https://images.unsplash.com/photo-1602874801006-bd458bb1b8b8",
+    "category": "home-decor",
+    "subcategory": "candle",
+    "style": "luxury",
+    "roomType": "living-room",
+    "tags": [
+      "candle",
+      "cozy",
+      "romantic",
+      "gift",
+      "home decor"
+    ],
+    "price": 3200
+  },
+  {
+    "title": "Wooden Wall Shelf",
+    "description": "Modern wooden shelf for elegant home decoration.",
+    "image": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
+    "category": "home-decor",
+    "subcategory": "wall-shelf",
+    "style": "modern",
+    "roomType": "living-room",
+    "tags": [
+      "wooden",
+      "wall shelf",
+      "modern",
+      "decor",
+      "storage"
+    ],
+    "price": 8500
+  },
+  {
+    "title": "Premium Indoor Plant Decor",
+    "description": "Beautiful indoor plant setup for refreshing interiors.",
+    "image": "https://images.unsplash.com/photo-1485955900006-10f4d324d411",
+    "category": "home-decor",
+    "subcategory": "plant",
+    "style": "modern",
+    "roomType": "living-room",
+    "tags": [
+      "plant",
+      "green",
+      "decor",
+      "fresh",
+      "home decor"
+    ],
+    "price": 4800
+  },
+  {
+    "title": "Classic Decorative Clock",
+    "description": "Elegant wall clock for stylish interiors.",
+    "image": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
+    "category": "home-decor",
+    "subcategory": "clock",
+    "style": "classic",
+    "roomType": "living-room",
+    "tags": [
+      "clock",
+      "wall decor",
+      "classic",
+      "stylish",
+      "gift"
+    ],
+    "price": 3900
+  },
+  {
+    "title": "Luxury Bedroom Decor Set",
+    "description": "Premium decor accessories for bedroom setup.",
+    "image": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
+    "category": "home-decor",
+    "subcategory": "bedroom-decor",
+    "style": "luxury",
+    "roomType": "bedroom",
+    "tags": [
+      "bedroom decor",
+      "luxury",
+      "premium",
+      "comfortable",
+      "gift"
+    ],
+    "price": 15000
+  },
+  {
+    "title": "Minimal Home Decor Combo",
+    "description": "Affordable decor combo for modern homes.",
+    "image": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
+    "category": "home-decor",
+    "subcategory": "decor-combo",
+    "style": "minimal",
+    "roomType": "living-room",
+    "tags": [
+      "home decor",
+      "budget",
+      "minimal",
+      "gift",
+      "modern"
+    ],
+    "price": 7000
+  }
+]

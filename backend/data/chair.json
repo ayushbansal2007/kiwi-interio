@@ -1,0 +1,176 @@
+[
+  {
+    "title": "Premium Office Chair",
+    "description": "Comfortable ergonomic office chair for long work hours.",
+    "image": "https://images.unsplash.com/photo-1505843513577-22bb7d21e455",
+    "category": "office",
+    "subcategory": "chair",
+    "style": "modern",
+    "roomType": "office",
+    "tags": [
+      "office",
+      "chair",
+      "work",
+      "computer",
+      "comfortable",
+      "study",
+      "ergonomic"
+    ],
+    "price": 18000
+  },
+  {
+    "title": "Luxury Executive Chair",
+    "description": "Luxury office chair with premium leather finish.",
+    "image": "https://images.unsplash.com/photo-1505843513577-22bb7d21e455",
+    "category": "office",
+    "subcategory": "chair",
+    "style": "luxury",
+    "roomType": "office",
+    "tags": [
+      "office",
+      "chair",
+      "executive",
+      "luxury",
+      "premium",
+      "comfortable"
+    ],
+    "price": 28000
+  },
+  {
+    "title": "Budget Study Chair",
+    "description": "Affordable chair for students and office work.",
+    "image": "https://images.unsplash.com/photo-1505843513577-22bb7d21e455",
+    "category": "office",
+    "subcategory": "chair",
+    "style": "minimal",
+    "roomType": "office",
+    "tags": [
+      "study",
+      "student",
+      "budget",
+      "chair",
+      "office",
+      "work"
+    ],
+    "price": 6500
+  },
+  {
+    "title": "Gaming Office Chair",
+    "description": "Comfortable gaming chair for office and gaming setup.",
+    "image": "https://images.unsplash.com/photo-1505843513577-22bb7d21e455",
+    "category": "office",
+    "subcategory": "chair",
+    "style": "modern",
+    "roomType": "office",
+    "tags": [
+      "gaming",
+      "chair",
+      "office",
+      "comfortable",
+      "computer",
+      "desk"
+    ],
+    "price": 22000
+  },
+  {
+    "title": "Minimal Work Chair",
+    "description": "Simple and elegant office chair.",
+    "image": "https://images.unsplash.com/photo-1505843513577-22bb7d21e455",
+    "category": "office",
+    "subcategory": "chair",
+    "style": "minimal",
+    "roomType": "office",
+    "tags": [
+      "minimal",
+      "office",
+      "chair",
+      "work",
+      "simple"
+    ],
+    "price": 9500
+  },
+  {
+    "title": "Wooden Study Chair",
+    "description": "Wooden chair ideal for study and work setup.",
+    "image": "https://images.unsplash.com/photo-1505843513577-22bb7d21e455",
+    "category": "office",
+    "subcategory": "chair",
+    "style": "classic",
+    "roomType": "office",
+    "tags": [
+      "wooden",
+      "study",
+      "office",
+      "chair",
+      "desk"
+    ],
+    "price": 8000
+  },
+  {
+    "title": "Comfort Plus Chair",
+    "description": "Extra comfort chair for office professionals.",
+    "image": "https://images.unsplash.com/photo-1505843513577-22bb7d21e455",
+    "category": "office",
+    "subcategory": "chair",
+    "style": "modern",
+    "roomType": "office",
+    "tags": [
+      "comfortable",
+      "office",
+      "chair",
+      "work",
+      "premium"
+    ],
+    "price": 17000
+  },
+  {
+    "title": "Premium Study Chair",
+    "description": "Elegant chair for study room and office use.",
+    "image": "https://images.unsplash.com/photo-1505843513577-22bb7d21e455",
+    "category": "office",
+    "subcategory": "chair",
+    "style": "modern",
+    "roomType": "office",
+    "tags": [
+      "study",
+      "office",
+      "chair",
+      "comfortable",
+      "desk"
+    ],
+    "price": 12000
+  },
+  {
+    "title": "Office Visitor Chair",
+    "description": "Professional visitor chair for office interiors.",
+    "image": "https://images.unsplash.com/photo-1505843513577-22bb7d21e455",
+    "category": "office",
+    "subcategory": "chair",
+    "style": "classic",
+    "roomType": "office",
+    "tags": [
+      "office",
+      "chair",
+      "visitor",
+      "professional"
+    ],
+    "price": 7000
+  },
+  {
+    "title": "Luxury Desk Chair",
+    "description": "Premium desk chair with elegant finish.",
+    "image": "https://images.unsplash.com/photo-1505843513577-22bb7d21e455",
+    "category": "office",
+    "subcategory": "chair",
+    "style": "luxury",
+    "roomType": "office",
+    "tags": [
+      "desk",
+      "chair",
+      "office",
+      "luxury",
+      "premium"
+    ],
+    "price": 24000
+  }
+]

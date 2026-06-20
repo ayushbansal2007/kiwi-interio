@@ -1,0 +1,112 @@
+[
+  {
+    "title": "Luxury Master Bedroom",
+    "description": "Premium luxury bedroom with modern interior and soft lighting.",
+    "image": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
+    "category": "bedroom",
+    "subcategory": "bed",
+    "style": "luxury",
+    "roomType": "bedroom",
+    "tags": ["luxury", "premium", "comfortable", "modern"],
+    "price": 55000
+  },
+  {
+    "title": "Minimal Cozy Bedroom",
+    "description": "Minimal and cozy bedroom design for peaceful living.",
+    "image": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
+    "category": "bedroom",
+    "subcategory": "bed",
+    "style": "minimal",
+    "roomType": "bedroom",
+    "tags": ["minimal", "cozy", "simple", "comfortable"],
+    "price": 28000
+  },
+  {
+    "title": "Modern Wooden Bedroom",
+    "description": "Elegant wooden bedroom setup with premium finish.",
+    "image": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
+    "category": "bedroom",
+    "subcategory": "bed",
+    "style": "modern",
+    "roomType": "bedroom",
+    "tags": ["wooden", "modern", "comfortable", "family"],
+    "price": 42000
+  },
+  {
+    "title": "Royal King Bedroom",
+    "description": "Royal style bedroom with king-size luxury setup.",
+    "image": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
+    "category": "bedroom",
+    "subcategory": "bed",
+    "style": "classic",
+    "roomType": "bedroom",
+    "tags": ["royal", "classic", "premium", "luxury"],
+    "price": 65000
+  },
+  {
+    "title": "Couple Romantic Bedroom",
+    "description": "Romantic bedroom designed for couples with warm decor.",
+    "image": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
+    "category": "bedroom",
+    "subcategory": "bed",
+    "style": "luxury",
+    "roomType": "bedroom",
+    "tags": ["romantic", "couple", "cozy", "premium"],
+    "price": 48000
+  },
+  {
+    "title": "Affordable Smart Bedroom",
+    "description": "Budget-friendly bedroom with modern interior look.",
+    "image": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
+    "category": "bedroom",
+    "subcategory": "bed",
+    "style": "modern",
+    "roomType": "bedroom",
+    "tags": ["budget", "modern", "affordable", "comfortable"],
+    "price": 22000
+  },
+  {
+    "title": "Premium Luxury Bedroom",
+    "description": "Spacious premium bedroom with luxury furniture.",
+    "image": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
+    "category": "bedroom",
+    "subcategory": "bed",
+    "style": "luxury",
+    "roomType": "bedroom",
+    "tags": ["luxury", "premium", "modern", "comfortable"],
+    "price": 70000
+  },
+  {
+    "title": "Dark Theme Bedroom",
+    "description": "Stylish dark-themed bedroom for a premium feel.",
+    "image": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
+    "category": "bedroom",
+    "subcategory": "bed",
+    "style": "modern",
+    "roomType": "bedroom",
+    "tags": ["dark", "modern", "premium", "stylish"],
+    "price": 36000
+  },
+  {
+    "title": "Small Space Bedroom",
+    "description": "Perfect bedroom setup for compact spaces.",
+    "image": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
+    "category": "bedroom",
+    "subcategory": "bed",
+    "style": "minimal",
+    "roomType": "bedroom",
+    "tags": ["small room", "minimal", "compact", "budget"],
+    "price": 18000
+  },
+  {
+    "title": "Elegant Family Bedroom",
+    "description": "Comfortable and elegant bedroom for family use.",
+    "image": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
+    "category": "bedroom",
+    "subcategory": "bed",
+    "style": "modern",
+    "roomType": "bedroom",
+    "tags": ["family", "comfortable", "modern", "elegant"],
+    "price": 39000
+  }
+]

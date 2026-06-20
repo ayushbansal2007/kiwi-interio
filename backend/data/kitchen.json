@@ -1,0 +1,112 @@
+[
+  {
+    "title": "Luxury Modular Kitchen",
+    "description": "Premium modular kitchen with elegant storage and modern design.",
+    "image": "https://images.unsplash.com/photo-1556911220-bff31c812dba",
+    "category": "kitchen",
+    "subcategory": "modular-kitchen",
+    "style": "luxury",
+    "roomType": "kitchen",
+    "tags": ["luxury", "premium", "modern", "modular"],
+    "price": 85000
+  },
+  {
+    "title": "Modern Compact Kitchen",
+    "description": "Stylish compact kitchen for small homes and apartments.",
+    "image": "https://images.unsplash.com/photo-1556911220-bff31c812dba",
+    "category": "kitchen",
+    "subcategory": "modular-kitchen",
+    "style": "modern",
+    "roomType": "kitchen",
+    "tags": ["compact", "modern", "small space", "simple"],
+    "price": 35000
+  },
+  {
+    "title": "Minimal White Kitchen",
+    "description": "Minimal white-themed kitchen with clean interior.",
+    "image": "https://images.unsplash.com/photo-1556911220-bff31c812dba",
+    "category": "kitchen",
+    "subcategory": "kitchen-design",
+    "style": "minimal",
+    "roomType": "kitchen",
+    "tags": ["minimal", "white", "simple", "modern"],
+    "price": 42000
+  },
+  {
+    "title": "Premium Wooden Kitchen",
+    "description": "Wooden premium kitchen with elegant finish.",
+    "image": "https://images.unsplash.com/photo-1556911220-bff31c812dba",
+    "category": "kitchen",
+    "subcategory": "modular-kitchen",
+    "style": "classic",
+    "roomType": "kitchen",
+    "tags": ["wooden", "premium", "luxury", "family"],
+    "price": 68000
+  },
+  {
+    "title": "Budget Friendly Kitchen",
+    "description": "Affordable modular kitchen with smart storage.",
+    "image": "https://images.unsplash.com/photo-1556911220-bff31c812dba",
+    "category": "kitchen",
+    "subcategory": "modular-kitchen",
+    "style": "minimal",
+    "roomType": "kitchen",
+    "tags": ["budget", "cheap", "compact", "affordable"],
+    "price": 25000
+  },
+  {
+    "title": "Family Kitchen Setup",
+    "description": "Spacious kitchen perfect for family cooking.",
+    "image": "https://images.unsplash.com/photo-1556911220-bff31c812dba",
+    "category": "kitchen",
+    "subcategory": "kitchen-design",
+    "style": "modern",
+    "roomType": "kitchen",
+    "tags": ["family", "comfortable", "spacious", "modern"],
+    "price": 55000
+  },
+  {
+    "title": "Luxury Black Kitchen",
+    "description": "Elegant black themed luxury kitchen interior.",
+    "image": "https://images.unsplash.com/photo-1556911220-bff31c812dba",
+    "category": "kitchen",
+    "subcategory": "modular-kitchen",
+    "style": "luxury",
+    "roomType": "kitchen",
+    "tags": ["black", "luxury", "premium", "stylish"],
+    "price": 72000
+  },
+  {
+    "title": "Modern Smart Kitchen",
+    "description": "Smart kitchen setup with premium finish and storage.",
+    "image": "https://images.unsplash.com/photo-1556911220-bff31c812dba",
+    "category": "kitchen",
+    "subcategory": "smart-kitchen",
+    "style": "modern",
+    "roomType": "kitchen",
+    "tags": ["smart", "modern", "premium", "stylish"],
+    "price": 60000
+  },
+  {
+    "title": "Small Apartment Kitchen",
+    "description": "Compact kitchen perfect for apartments.",
+    "image": "https://images.unsplash.com/photo-1556911220-bff31c812dba",
+    "category": "kitchen",
+    "subcategory": "compact-kitchen",
+    "style": "minimal",
+    "roomType": "kitchen",
+    "tags": ["small", "compact", "budget", "apartment"],
+    "price": 28000
+  },
+  {
+    "title": "Elegant Family Kitchen",
+    "description": "Elegant kitchen design for premium family homes.",
+    "image": "https://images.unsplash.com/photo-1556911220-bff31c812dba",
+    "category": "kitchen",
+    "subcategory": "kitchen-design",
+    "style": "modern",
+    "roomType": "kitchen",
+    "tags": ["family", "premium", "modern", "comfortable"],
+    "price": 50000
+  }
+]

@@ -1,0 +1,112 @@
+[
+  {
+    "title": "Luxury Leather Sofa",
+    "description": "Premium leather sofa for modern luxury homes.",
+    "image": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc",
+    "category": "living-room",
+    "subcategory": "sofa",
+    "style": "luxury",
+    "roomType": "living-room",
+    "tags": ["luxury", "premium", "comfortable", "modern"],
+    "price": 45000
+  },
+  {
+    "title": "Minimal Sofa Set",
+    "description": "Simple and cozy sofa for compact spaces.",
+    "image": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc",
+    "category": "living-room",
+    "subcategory": "sofa",
+    "style": "minimal",
+    "roomType": "living-room",
+    "tags": ["minimal", "comfortable", "compact", "simple"],
+    "price": 22000
+  },
+  {
+    "title": "Premium Family Sofa",
+    "description": "Large family sofa with comfortable seating.",
+    "image": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc",
+    "category": "living-room",
+    "subcategory": "sofa",
+    "style": "modern",
+    "roomType": "living-room",
+    "tags": ["family", "comfortable", "premium", "modern"],
+    "price": 38000
+  },
+  {
+    "title": "Royal Sofa Set",
+    "description": "Classic royal sofa for elegant interiors.",
+    "image": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc",
+    "category": "living-room",
+    "subcategory": "sofa",
+    "style": "classic",
+    "roomType": "living-room",
+    "tags": ["royal", "classic", "premium", "luxury"],
+    "price": 60000
+  },
+  {
+    "title": "Dark Theme Sofa",
+    "description": "Stylish dark sofa for premium homes.",
+    "image": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc",
+    "category": "living-room",
+    "subcategory": "sofa",
+    "style": "modern",
+    "roomType": "living-room",
+    "tags": ["dark", "modern", "stylish", "comfortable"],
+    "price": 32000
+  },
+  {
+    "title": "Budget Friendly Sofa",
+    "description": "Affordable sofa with modern comfort.",
+    "image": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc",
+    "category": "living-room",
+    "subcategory": "sofa",
+    "style": "minimal",
+    "roomType": "living-room",
+    "tags": ["budget", "cheap", "comfortable", "simple"],
+    "price": 18000
+  },
+  {
+    "title": "Luxury Corner Sofa",
+    "description": "Corner sofa perfect for premium living rooms.",
+    "image": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc",
+    "category": "living-room",
+    "subcategory": "sofa",
+    "style": "luxury",
+    "roomType": "living-room",
+    "tags": ["luxury", "corner", "comfortable", "premium"],
+    "price": 52000
+  },
+  {
+    "title": "Modern Grey Sofa",
+    "description": "Elegant grey sofa for modern interiors.",
+    "image": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc",
+    "category": "living-room",
+    "subcategory": "sofa",
+    "style": "modern",
+    "roomType": "living-room",
+    "tags": ["grey", "modern", "stylish", "comfortable"],
+    "price": 29000
+  },
+  {
+    "title": "Compact Sofa",
+    "description": "Perfect sofa for small apartments.",
+    "image": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc",
+    "category": "living-room",
+    "subcategory": "sofa",
+    "style": "minimal",
+    "roomType": "living-room",
+    "tags": ["small room", "compact", "budget", "comfortable"],
+    "price": 16000
+  },
+  {
+    "title": "Elegant Premium Sofa",
+    "description": "Stylish premium sofa with luxury comfort.",
+    "image": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc",
+    "category": "living-room",
+    "subcategory": "sofa",
+    "style": "luxury",
+    "roomType": "living-room",
+    "tags": ["premium", "luxury", "stylish", "comfortable"],
+    "price": 42000
+  }
+]
