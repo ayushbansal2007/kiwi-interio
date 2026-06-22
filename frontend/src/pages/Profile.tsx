@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 
-useDocumentTitle("Profile");
+
 
 interface User {
   name: string;
@@ -13,7 +13,7 @@ interface User {
 
 function Profile() {
   const [user, setUser] = useState<User | null>(null);
-
+useDocumentTitle("Profile");
   useEffect(() => {
     const token = localStorage.getItem("token");
 

@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 
-useDocumentTitle("AI Assistant");
+
 
 function AIAssistant() {
   const [message, setMessage] = useState("");
@@ -19,7 +19,7 @@ function AIAssistant() {
   const [userName, setUserName] = useState("User");
   
   const messagesEndRef = useRef<any>(null);
-
+useDocumentTitle("AI Assistant");
   // ==========================================
   // 🔄 1. PERFECT HISTORY SYNC (INITIAL LOAD)
   // ==========================================
