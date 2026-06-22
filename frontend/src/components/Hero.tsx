@@ -1,6 +1,8 @@
 // 📁 components/Hero.tsx
+import useDocumentTitle from "../hooks/useDocumentTitle";
 
 function Hero() {
+  useDocumentTitle(" Powered By");
   return (
     <section className="bg-white py-20 px-6">
       <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">

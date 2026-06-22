@@ -3,6 +3,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import useDocumentTitle from "../hooks/useDocumentTitle";
 
 interface Interior {
   _id: string;
@@ -18,7 +19,8 @@ interface Interior {
 }
 
 function InteriorList() {
-
+useDocumentTitle("Interiors");
+  
   const [
     interiors,
     setInteriors,
