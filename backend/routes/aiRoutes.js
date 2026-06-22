@@ -23,16 +23,13 @@ const { saveMessage, getConversation } = require("../services/chatMemoryService"
 const authmiddleware = require("../middleware/authMiddleware");
 
 // ==========================================
-// 🔄 NEW ROUTE: FETCH CHAT HISTORY ON REFRESH
+// 🔄 ROUTE: FETCH CHAT HISTORY ON REFRESH
 // ==========================================
 router.get("/chat-history", authmiddleware, async (req, res) => {
   try {
-    const userId = req.user.userId; // Middleware se secure userId nikali
-
+    const userId = req.user.userId;
     console.log(`📜 Fetching historical conversation for user: ${userId}`);
     const dbHistory = await getConversation(userId);
-
-    // Frontend ko direct pure history array bhej do
     return res.json(dbHistory || []);
   } catch (error) {
     console.error("❌ CHAT HISTORY ROUTE ERROR:", error);
@@ -59,12 +56,11 @@ router.post("/ai", authmiddleware, async (req, res) => {
       });
     }
 
-    // ---------------- 2. HARDCODED OVERRIDE FOR GREETINGS (COST SAVER) ----------------
+    // ---------------- 2. HARDCODED OVERRIDE FOR GREETINGS ----------------
     const cleanMessage = message.trim().toLowerCase();
     const isGreeting = /^(hello|hi|hey|hola|greetings|good morning|good afternoon|good evening|wassup|yo|hello assistant|hi assistant)$/.test(cleanMessage);
 
     if (isGreeting) {
-      // Greeting ko securely database me store karo taaki history clean rahe
       await saveMessage({ userId, role: "user", message });
       
       const greetingReply = {
@@ -84,7 +80,7 @@ router.post("/ai", authmiddleware, async (req, res) => {
       });
     }
 
-    // ---------------- 3. MEMORY (SAVE USER CHAT FOR COMPLEX QUERIES) ----------------
+    // ---------------- 3. MEMORY (SAVE USER CHAT) ----------------
     await saveMessage({
       userId,
       role: "user",
@@ -92,14 +88,10 @@ router.post("/ai", authmiddleware, async (req, res) => {
     });
 
     // ---------------- 4. 🔥 RAG CONTEXT FETCHING ----------------
-    // // console.log("🔍 Fetching Vector RAG matches for:", message);
     const { contextText, dbItems } = await kiwiRagPipeline(message);
 
-    // ---------------- 5. 🎯 FIXED: SAFE HISTORY EXCLUSION (NO DATA LOSS) ----------------
+    // ---------------- 5. SAFE HISTORY EXCLUSION ----------------
     const dbHistory = await getConversation(userId);
-    
-    // 🔥 MASTER FIX: Kyunki humne message upar save kar diya hai, toh array ka sabse aakhri element current message hi hoga.
-    // Hum safely sirf us aakhri duplicate element ko pop out karenge, purani history ka koi data loss nahi hoga!
     if (dbHistory && dbHistory.length > 0) {
       dbHistory.pop(); 
     }
@@ -110,14 +102,14 @@ router.post("/ai", authmiddleware, async (req, res) => {
         content: `${systemPrompt}\n\n=== REAL-TIME INVENTORY CONTEXT ===\n${contextText || "No direct matches found."}`,
       },
       ...fewShotExamples,
-      ...dbHistory, // Saari genuine purani history bina kisi deletion ke safe hai
+      ...dbHistory,
       {
         role: "user",
-        content: message, // Current fresh message entry here
+        content: message,
       },
     ];
 
-    // ---------------- 6. AI RESPONSE (WITH PROTECTION) ----------------
+    // ---------------- 6. AI RESPONSE ----------------
     const response = await retryWithBackoff(() =>
       client.chat.completions.create({
         model: modelConfig.model,
@@ -138,7 +130,6 @@ router.post("/ai", authmiddleware, async (req, res) => {
       parsedReply = JSON.parse(jsonMatch[0]);
     } catch (error) {
       console.log("⚠️ JSON PARSE ERROR! AI returned raw text. Converting to valid structure...");
-      
       parsedReply = {
         intent: "recommendation",
         tool: "null",
@@ -167,7 +158,16 @@ router.post("/ai", authmiddleware, async (req, res) => {
       }
     }
 
-    // 🎯 AI ka final message securely database me save hoga sebelum tool outputs
+    // 🎯 SMART BACKUP CHECK FOR AI MISTAKES (Fixes Empty Parameters)
+    // Agar AI ne category khali chhodi ya galat format diya, toh user ke original message ya RAG item se extract karo
+    if (!parsedReply.category || typeof parsedReply.category === 'object') {
+      if (dbItems && dbItems.length > 0) {
+        parsedReply.category = dbItems[0].category || "bedroom";
+      } else {
+        parsedReply.category = message; // Fallback to raw user query text
+      }
+    }
+
     const finalAiMessage = parsedReply?.message || "Tool response";
     await saveMessage({
       userId,
@@ -175,7 +175,7 @@ router.post("/ai", authmiddleware, async (req, res) => {
       message: finalAiMessage,
     });
 
-    // ---------------- 9. TOOL CALLING SECTIONS (CLEAN CONDITIONAL RETURNS) ----------------
+    // ---------------- 9. TOOL CALLING SECTIONS ----------------
     let shouldShowItems = 
       parsedReply.tool_required === true || 
       (parsedReply.tool && parsedReply.tool !== "null") || 
@@ -213,23 +213,29 @@ router.post("/ai", authmiddleware, async (req, res) => {
       });
     }
 
-    // C. Search Tool
+    // C. 🎯 SEARCH TOOL (SMART PRE-CHECK FIXED)
     if (parsedReply.tool === "searchInterior") {
+      // Robust filtering text extraction
+      const targetCategory = (typeof parsedReply.category === "string" && parsedReply.category.trim() !== "") 
+        ? parsedReply.category 
+        : message;
+
       const result = await searchInteriorTool({
-        category: parsedReply.category,
-        budget: parsedReply.budget,
-        style: parsedReply.style,
+        category: targetCategory,
+        budget: Number(parsedReply.budget) || 0,
+        style: parsedReply.style || "",
       });
 
-      const finalItems = result.items.length ? result.items : (dbItems || []);
+      // Agar filter query fail ho jaye toh RAG wale vector items use kar lo as safety net
+      const finalItems = result.items && result.items.length ? result.items : (dbItems || []);
 
       return res.json({
         success: true,
         reply: {
           intent: "recommendation",
-          category: parsedReply.category,
+          category: targetCategory,
           budget: parsedReply.budget,
-          style: parsedReply.style,
+          style: parsedReply.style || "",
           tool: "searchInterior",
           tool_required: true,
           clarification_needed: false,
@@ -241,16 +247,20 @@ router.post("/ai", authmiddleware, async (req, res) => {
 
     // D. Budget Planner
     if (parsedReply.tool === "budgetPlanner") {
+      const targetCategory = (typeof parsedReply.category === "string" && parsedReply.category.trim() !== "") 
+        ? parsedReply.category 
+        : message;
+
       const result = await budgetPlannerTool({
-        category: parsedReply.category,
-        budget: parsedReply.budget,
+        category: targetCategory,
+        budget: Number(parsedReply.budget) || 0,
       });
 
       return res.json({
         success: true,
         reply: {
           intent: "budget_planning",
-          category: parsedReply.category,
+          category: targetCategory,
           budget: parsedReply.budget,
           style: parsedReply.style || "",
           tool: "budgetPlanner",
@@ -262,7 +272,7 @@ router.post("/ai", authmiddleware, async (req, res) => {
       });
     }
 
-    // ---------------- 10. DEFAULT FALLBACK RESPONSE (IF NO TOOLS TRIGGERED) ----------------
+    // ---------------- 10. DEFAULT FALLBACK RESPONSE ----------------
     return res.json({
       success: true,
       reply: {

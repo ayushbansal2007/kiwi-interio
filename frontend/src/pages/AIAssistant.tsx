@@ -7,6 +7,9 @@ import {
   Phone,
   Trash2,
 } from "lucide-react";
+import useDocumentTitle from "../hooks/useDocumentTitle";
+
+useDocumentTitle("AI Assistant");
 
 function AIAssistant() {
   const [message, setMessage] = useState("");

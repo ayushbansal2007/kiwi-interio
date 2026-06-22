@@ -3,11 +3,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import WelcomePopup from "../components/WelcomePopup";
+import useDocumentTitle from "../hooks/useDocumentTitle";
+
+useDocumentTitle("Login");
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPopup, setShowPopup] = useState(false);
+
 
   const navigate = useNavigate();
 

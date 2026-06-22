@@ -1,6 +1,9 @@
 // 📁 src/pages/Profile.tsx
 
 import { useEffect, useState } from "react";
+import useDocumentTitle from "../hooks/useDocumentTitle";
+
+useDocumentTitle("Profile");
 
 interface User {
   name: string;

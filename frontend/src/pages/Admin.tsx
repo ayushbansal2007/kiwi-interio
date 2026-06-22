@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-
+import useDocumentTitle from "../hooks/useDocumentTitle";
 interface Interior {
   _id: string;
   title: string;
@@ -19,6 +19,8 @@ function Admin() {
   if (role !== "admin") {
     return <Navigate to="/" />;
   }
+
+  useDocumentTitle("Admin Panel");
 
   const [interiors, setInteriors] = useState<Interior[]>([]);
   const [loadingId, setLoadingId] = useState<string | null>(null);

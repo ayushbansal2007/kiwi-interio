@@ -1,6 +1,9 @@
 // 📁 pages/Register.tsx
 
 import { useState } from "react";
+import useDocumentTitle from "../hooks/useDocumentTitle";
+
+
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -9,6 +12,8 @@ function Register() {
     password: "",
     number: "",
   });
+
+  useDocumentTitle("Register");
 
   const handleRegister = async (
     e: React.FormEvent
