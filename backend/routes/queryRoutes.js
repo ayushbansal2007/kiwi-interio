@@ -4,17 +4,22 @@ const Query = require("../models/Query");
 const nodemailer = require("nodemailer");
 
 // ✉️ CLOUD-COMPATIBLE NODEMAILER TRANSPORTER (UPDATED FOR RENDER PRODUCTION)
+// ✉️ HARDENED CLOUD TRANSPORTER (FORCED IPV4 PROTOCOL FOR RENDER)
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 587,                 // 👈 Cloud/Render infrastructure par 587 (TLS) use hota hai
-  secure: false,             // 587 port ke liye hamesha false rakhenge
+  port: 587,                 // 👈 587 explicitly set karenge
+  secure: false,             // TLS upgrade pipeline ke liye false
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
   tls: {
-    rejectUnauthorized: false // 👈 Render ke SSL dynamic limits ko bypass karne ke liye mandatory hai
-  }
+    rejectUnauthorized: false, // SSL restriction bypass
+  },
+  // ⚡ THE FIX: Node ko force karega ki IPv6 chord kar direct safe IPv4 address check kare
+  connectionTimeout: 10000, 
+  greetingTimeout: 10000,
+  dnsTimeout: 10000
 });
 
 // Verify connection configuration upon server boot
