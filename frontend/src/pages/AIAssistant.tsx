@@ -17,6 +17,7 @@ function AIAssistant() {
   const [loading, setLoading] = useState(false);
   const [typingText, setTypingText] = useState("");
   const [userName, setUserName] = useState("User");
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://kiwi-interio.onrender.com";
   
   const messagesEndRef = useRef<any>(null);
 useDocumentTitle("AI Assistant");
@@ -41,7 +42,7 @@ useDocumentTitle("AI Assistant");
         const token = localStorage.getItem("token");
         if (!token) return;
 
-        const res = await axios.get("https://kiwi-interio.onrender.com/api/chat-history", {
+        const res = await axios.get(`${API_BASE_URL}/api/chat-history`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -133,7 +134,7 @@ useDocumentTitle("AI Assistant");
       const token = localStorage.getItem("token");
 
       const res = await axios.post(
-        "https://kiwi-interio.onrender.com/api/ai",
+        `${API_BASE_URL}/api/ai`,
         { message: currentMessage },
         { headers: { Authorization: `Bearer ${token}` } }
       );

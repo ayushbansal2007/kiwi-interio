@@ -7,6 +7,7 @@ const authRoutes = require("./routes/authRoutes")
 const aiRoutes = require("./routes/aiRoutes");
 const morgan = require("morgan")
 const logger = require("./utils/logger")
+const queryRoutes = require("./routes/queryRoutes");
 
 const app = express();
 
@@ -47,7 +48,7 @@ app.use("/api", interiorRoutes)
 app.use("/api/auth", authRoutes)
 app.use("/api/login", authRoutes)
 app.use("/api", aiRoutes);
-
+app.use("/api/queries", queryRoutes);
 connectDB();
 
 app.get("/", (req, res) => {

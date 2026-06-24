@@ -14,14 +14,14 @@ function Register() {
   });
 
   useDocumentTitle("Register");
-
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://kiwi-interio.onrender.com";
   const handleRegister = async (
     e: React.FormEvent
   ) => {
     e.preventDefault();
 
     const response = await fetch(
-      "https://kiwi-interio.onrender.com/api/auth/register",
+      `${API_BASE_URL}/api/auth/register`,
       {
         method: "POST",
         headers: {

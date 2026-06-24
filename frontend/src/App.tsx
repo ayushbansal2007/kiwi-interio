@@ -11,6 +11,8 @@ import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import AIAssistant from "./pages/AIAssistant";
+import ContactQuery from "./pages/ContactQuery"; // 👈 Hamara floating code import kiya
+
 function App() {
   return (
     <>
@@ -30,14 +32,18 @@ function App() {
           }
         />
 
-        {/* Auth Pages */}
+        {/* Auth & Feature Pages */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/profile" element={<Profile />}/>
-        <Route path="/admin" element={<Admin />}/>
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/admin" element={<Admin />} />
         <Route path="/interiors" element={<InteriorList />} />
         <Route path="/ai-assistant" element={<AIAssistant />} />
       </Routes>
+
+      {/* 🎯 GLOBAL FLOATING LAYER */}
+      {/* Ye Routes ke bahaar hai, isliye har page par right-bottom me floating dikhega */}
+      <ContactQuery />
     </>
   );
 }
