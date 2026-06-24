@@ -3,17 +3,18 @@ const router = express.Router();
 const Query = require("../models/Query");
 const nodemailer = require("nodemailer");
 
-
-// ✉️ NODEMAILER TRANSPORTER CONFIGURATION (PRODUCTION READY)
+// ✉️ CLOUD-COMPATIBLE NODEMAILER TRANSPORTER (UPDATED FOR RENDER PRODUCTION)
 const transporter = nodemailer.createTransport({
-  service: "gmail",
   host: "smtp.gmail.com",
-  port: 465,
-  secure: true, // TLS/SSL encryption ke liye true
+  port: 587,                 // 👈 Cloud/Render infrastructure par 587 (TLS) use hota hai
+  secure: false,             // 587 port ke liye hamesha false rakhenge
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  tls: {
+    rejectUnauthorized: false // 👈 Render ke SSL dynamic limits ko bypass karne ke liye mandatory hai
+  }
 });
 
 // Verify connection configuration upon server boot
@@ -84,8 +85,7 @@ router.post("/submit", async (req, res) => {
       `,
     };
 
-    // ⚡ PRODUCTION ASYNC TRICK: Email sending pipeline runs in the background.
-    // We send response to frontend immediately without making the user wait for email response lag.
+    // ⚡ PRODUCTION ASYNC TRICK
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
         console.error("❌ Production Nodemailer Execution Error:", error);
@@ -119,9 +119,6 @@ router.get("/all", async (req, res) => {
 });
 
 /* =========================================================================
-    🟢 DEV ROUTE: Update/Delete Status Logic
-   ========================================================================= */
-/* =========================================================================
     🟢 DEV ROUTE: Update/Delete Status Logic (With Resolution Email Pipeline)
    ========================================================================= */
 router.post("/update-status/:id", async (req, res) => {
@@ -134,17 +131,15 @@ router.post("/update-status/:id", async (req, res) => {
 
     // 🎯 IF STATUS IS RESOLVED -> SEND RESOLUTION EMAIL & THEN DELETE
     if (status === "Resolved") {
-      // 1. Pehle database se query ka saara data dhoondo taaki hume user ka name aur email mil sake
       const currentQuery = await Query.findById(req.params.id);
 
       if (!currentQuery) {
         return res.status(404).json({ message: "Query log not found in database" });
       }
 
-      // 2. Clear Minimalist Resolution Email Template Design
       const resolutionMailOptions = {
         from: `"Kiwi Interio Studio" <${process.env.EMAIL_USER}>`,
-        to: currentQuery.email, // User ki email ID jo db me saved thi
+        to: currentQuery.email,
         subject: `Ticket Resolved Successfully - Ticket: ${currentQuery.ticketId || "KI-LOG"}`,
         html: `
           <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e5e0; padding: 40px; color: #1c1917; background-color: #ffffff;">
@@ -161,7 +156,7 @@ router.post("/update-status/:id", async (req, res) => {
               <p style="margin: 10px 0 0 0; font-size: 20px; font-weight: bold; color: #16a34a; text-transform: uppercase; letter-spacing: 1px;">✓ RESOLVED & CLOSED</p>
             </div>
             
-            <p style="font-size: 13px; line-height: 1.6; color: #6b6661; italic: true;">If you are fully satisfied with the communication or solution provided by our relationship team, you can safely ignore this automated transmission thread.</p>
+            <p style="font-size: 13px; line-height: 1.6; color: #6b6661;">If you are fully satisfied with the communication or solution provided by our relationship team, you can safely ignore this automated transmission thread.</p>
             
             <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e5e0;">
               <p style="font-size: 13px; font-weight: bold; margin: 0; color: #000000;">Thank you for choosing Kiwi Interio,</p>
@@ -171,7 +166,6 @@ router.post("/update-status/:id", async (req, res) => {
         `,
       };
 
-      // 3. Email ko background pipeline me trigger karo
       transporter.sendMail(resolutionMailOptions, (error, info) => {
         if (error) {
           console.error("❌ Ticket Resolution Email Delivery Failed:", error);
@@ -180,7 +174,6 @@ router.post("/update-status/:id", async (req, res) => {
         }
       });
 
-      // 4. Email fire karne ke baad ab bina dare MongoDB database se data hard-delete kar do
       await Query.findByIdAndDelete(req.params.id);
 
       return res.status(200).json({ 
@@ -191,7 +184,6 @@ router.post("/update-status/:id", async (req, res) => {
       });
     }
 
-    // 🔄 AGAR STATUS PENDING/IN-PROGRESS HAI TOH SIRF UPDATE KARO (NO EMAIL FOR THIS)
     const updatedQuery = await Query.findByIdAndUpdate(
       req.params.id,
       { status: status },
