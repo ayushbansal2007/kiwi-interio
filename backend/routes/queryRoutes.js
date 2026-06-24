@@ -5,21 +5,25 @@ const nodemailer = require("nodemailer");
 
 // ✉️ CLOUD-COMPATIBLE NODEMAILER TRANSPORTER (UPDATED FOR RENDER PRODUCTION)
 // ✉️ HARDENED CLOUD TRANSPORTER (FORCED IPV4 PROTOCOL FOR RENDER)
+// ✉️ RE-ARCHITECTED TRANSPORTER FOR RENDER TIMEOUT BYPASS
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 587,                 // 👈 587 explicitly set karenge
-  secure: false,             // TLS upgrade pipeline ke liye false
+  port: 587,
+  secure: false, // 587 ke liye explicit false
+  pool: true,    // ⚡ PRO TIP: Connection reuse karega, har baar naya handshake open nahi karega
+  maxConnections: 3,
+  maxMessages: 100,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
   tls: {
-    rejectUnauthorized: false, // SSL restriction bypass
+    rejectUnauthorized: false,
+    ciphers: 'SSLv3' // 👈 Cloud firewall packet restrictions ko clear karne ke liye
   },
-  // ⚡ THE FIX: Node ko force karega ki IPv6 chord kar direct safe IPv4 address check kare
-  connectionTimeout: 10000, 
-  greetingTimeout: 10000,
-  dnsTimeout: 10000
+  connectionTimeout: 20000, // Timeout badha kar 20 seconds kiya taaki Render load buffer handle ho sake
+  greetingTimeout: 20000,
+  socketTimeout: 20000
 });
 
 // Verify connection configuration upon server boot
