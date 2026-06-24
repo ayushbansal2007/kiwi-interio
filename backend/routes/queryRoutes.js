@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const Query = require("../models/Query");
-const nodemailer = require("nodemailer"); 
-const rolemiddleware=require("../middleware/roleMiddleware")// 👈 Imported Nodemailer
+const nodemailer = require("nodemailer");
+
 
 // ✉️ NODEMAILER TRANSPORTER CONFIGURATION (PRODUCTION READY)
 const transporter = nodemailer.createTransport({
@@ -28,7 +28,7 @@ transporter.verify((error, success) => {
 /* =========================================================================
     🟢 PUBLIC ROUTE: Submit Query (With Dynamic Math Ticket & Async Email Alert)
    ========================================================================= */
-router.post("/submit", rolemiddleware(["user"]), async (req, res) => {
+router.post("/submit", async (req, res) => {
   try {
     const { name, email, phone, message } = req.body;
 
