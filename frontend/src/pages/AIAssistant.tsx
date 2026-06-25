@@ -9,8 +9,6 @@ import {
 } from "lucide-react";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 
-
-
 function AIAssistant() {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<any[]>([]);
@@ -20,12 +18,12 @@ function AIAssistant() {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://kiwi-interio.onrender.com";
   
   const messagesEndRef = useRef<any>(null);
-useDocumentTitle("AI Assistant");
+  useDocumentTitle("AI Assistant");
+
   // ==========================================
   // 🔄 1. PERFECT HISTORY SYNC (INITIAL LOAD)
   // ==========================================
   useEffect(() => {
-    // A. User metadata load karo
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
@@ -36,7 +34,6 @@ useDocumentTitle("AI Assistant");
       }
     }
 
-    // B. Server se saari pichli database chat history khinch kar lao
     const fetchChatHistory = async () => {
       try {
         const token = localStorage.getItem("token");
@@ -46,8 +43,6 @@ useDocumentTitle("AI Assistant");
           headers: { Authorization: `Bearer ${token}` }
         });
 
-        // 🔥 FIX: Agar database me purani chat hai, toh use direct state me set karo
-        // Isse page refresh hote hi user ko apna kal wala modern bed ka content screen par dikhega!
         if (res.data && Array.isArray(res.data)) {
           const formattedMessages = res.data.map((chat: any) => ({
             role: chat.role,
@@ -71,16 +66,12 @@ useDocumentTitle("AI Assistant");
     let index = 0;
     setTypingText("");
 
-    // 🚀 100x FIX: 1000 setTimeout ke bajay, sirf EK SINGLE interval RAM me chalega.
     const intervalId = setInterval(() => {
       setTypingText((prev) => prev + fullText[index]);
       index++;
 
-      // Jab poora text print ho jaye, toh chunk ko close karo
       if (index >= fullText.length) {
-        clearInterval(intervalId); // Memory cleanup
-
-        // Ab poore text ko official message state me ek sath push karo
+        clearInterval(intervalId);
         setMessages((prev) => [
           ...prev,
           {
@@ -89,19 +80,17 @@ useDocumentTitle("AI Assistant");
             data: rawAiReply,
           },
         ]);
-        setTypingText(""); // Streaming placeholder saaf
+        setTypingText("");
       }
-    }, 15); // Stable 15ms frame rate render
+    }, 15);
   };
 
   // ==========================================
   // 📜 3. CONTROLLED AUTO-SCROLL
   // ==========================================
   useEffect(() => {
-    // 🔥 FIX: typingText dependency removed!
-    // Ab user typing ke dauran upar scroll karke purani chat bina jhatke ke padh sakta hai.
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+  }, [messages, loading, typingText]); // 👈 Added typingText for active tracking while streaming
 
   // 🧹 4. Clear Chat Handler
   const handleClearChat = () => {
@@ -122,7 +111,6 @@ useDocumentTitle("AI Assistant");
       content: message,
     };
 
-    // Naya message screen par turant jodo (Purane state ko barkrar rakhte hue)
     setMessages((prev) => [...prev, userMessage]);
     const currentMessage = message;
     setMessage("");
@@ -144,12 +132,10 @@ useDocumentTitle("AI Assistant");
       const aiReply = res.data?.reply;
       const aiMessageText = aiReply?.message || aiReply?.content || "Done";
 
-      // 🔥 EXPOSE FIXED: Purane loops ko tata-byebye bolo, clean animation chalu karo
       triggerTypingEffect(aiMessageText, aiReply);
 
     } catch (error: any) {
       console.log("CRITICAL API ERROR:", error);
-      
       const serverErrorMessage = error.response?.data?.message || "Server temporarily busy hai. Kripya dubaara koshish karein.";
       
       setMessages((prev) => [
@@ -169,25 +155,27 @@ useDocumentTitle("AI Assistant");
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-slate-50 via-white to-red-50/50 flex flex-col">
+    // 🟢 FIXED: h-screen ke sath flex-col ko tightly clamp kiya taaki screen size overflow na ho
+    <div className="h-[calc(100vh-60px)] md:h-screen bg-gradient-to-br from-slate-50 via-white to-red-50/50 flex flex-col overflow-hidden">
+      
       {/* HEADER */}
-      <div className="border-b border-red-100 bg-white/80 backdrop-blur-xl px-6 py-4 shadow-sm z-10">
+      <div className="border-b border-red-100 bg-white/80 backdrop-blur-xl px-4 sm:px-6 py-3 shadow-sm z-10">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="bg-gradient-to-r from-red-500 to-red-600 p-3 rounded-[22px] text-white shadow-md shadow-red-500/20">
-              <Bot size={26} />
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="bg-gradient-to-r from-red-500 to-red-600 p-2.5 sm:p-3 rounded-[18px] sm:rounded-[22px] text-white shadow-md shadow-red-500/20">
+              <Bot size={22} className="sm:w-[26px] sm:h-[26px]" />
             </div>
             <div>
-              <h1 className="text-xl font-bold flex items-center gap-2 text-gray-900">
-                Kiwi AI Assistant <span className="text-red-500 text-sm">✨</span>
+              <h1 className="text-base sm:text-xl font-bold flex items-center gap-1.5 text-gray-900">
+                Kiwi AI Assistant <span className="text-red-500 text-xs sm:text-sm">✨</span>
               </h1>
-              <p className="text-gray-500 text-xs">
-                Welcome, <span className="font-semibold text-red-600">{userName}</span> 👋 Design your dream space
+              <p className="text-gray-500 text-[10px] sm:text-xs">
+                Welcome, <span className="font-semibold text-red-600">{userName}</span> 👋 Design your space
               </p>
             </div>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <div className="hidden sm:flex items-center gap-2 bg-green-50 border border-green-100 px-3 py-1.5 rounded-full">
               <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
               <span className="text-xs font-semibold text-green-700">Online</span>
@@ -196,10 +184,10 @@ useDocumentTitle("AI Assistant");
             {messages.length > 0 && (
               <button
                 onClick={handleClearChat}
-                className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all duration-200 border border-transparent hover:border-red-100"
+                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all duration-200"
                 title="Clear Chat History"
               >
-                <Trash2 size={20} />
+                <Trash2 size={18} />
               </button>
             )}
           </div>
@@ -207,17 +195,18 @@ useDocumentTitle("AI Assistant");
       </div>
 
       {/* CHAT CONTAINER */}
-      <div className="flex-1 overflow-y-auto px-4 py-6">
+      {/* 🟢 FIXED: `pb-24 md:pb-6` diya taaki list ka aakhri message mobile menu bar ke piche na dabe */}
+      <div className="flex-1 overflow-y-auto px-4 py-6 pb-24 md:pb-6">
         <div className="max-w-5xl mx-auto space-y-6">
           {messages.length === 0 && !loading && (
-            <div className="text-center mt-16 animate-fade-in">
-              <div className="inline-flex bg-gradient-to-r from-red-500 to-red-600 text-white p-5 rounded-[28px] mb-6 shadow-xl shadow-red-500/10">
-                <Bot size={45} />
+            <div className="text-center mt-12 sm:mt-16 animate-fade-in">
+              <div className="inline-flex bg-gradient-to-r from-red-500 to-red-600 text-white p-4 sm:p-5 rounded-[24px] sm:rounded-[28px] mb-4 sm:mb-6 shadow-xl shadow-red-500/10">
+                <Bot size={35} className="sm:w-[45px] sm:h-[45px]" />
               </div>
-              <h2 className="text-4xl font-extrabold text-gray-900 tracking-tight">
+              <h2 className="text-2xl sm:text-4xl font-extrabold text-gray-900 tracking-tight px-2">
                 Welcome back, <span className="text-red-500">{userName}</span>!
               </h2>
-              <p className="text-gray-500 mt-3 text-base max-w-xl mx-auto leading-relaxed">
+              <p className="text-gray-500 mt-3 text-xs sm:text-base max-w-xl mx-auto leading-relaxed px-4">
                 Aap mujhse bedroom designs, modern kitchens, luxury sofas, pricing ya interiors ka budget plan karne ko bol sakte hain.
               </p>
             </div>
@@ -229,51 +218,51 @@ useDocumentTitle("AI Assistant");
               {/* USER MESSAGE */}
               {msg.role === "user" && (
                 <div className="flex justify-end">
-                  <div className="max-w-[80%] bg-gradient-to-r from-gray-800 to-gray-900 text-white px-5 py-3.5 rounded-[24px] rounded-br-sm shadow-md">
-                    <div className="flex items-center gap-2 mb-1.5 opacity-75">
-                      <User size={13} />
-                      <span className="font-medium text-xs">You</span>
+                  <div className="max-w-[85%] sm:max-w-[80%] bg-gradient-to-r from-gray-800 to-gray-900 text-white px-4 py-2.5 sm:px-5 sm:py-3.5 rounded-[20px] rounded-br-sm shadow-md">
+                    <div className="flex items-center gap-2 mb-1 opacity-75">
+                      <User size={12} />
+                      <span className="font-medium text-[10px]">You</span>
                     </div>
-                    <p className="leading-relaxed text-sm">{msg.content}</p>
+                    <p className="leading-relaxed text-xs sm:text-sm">{msg.content}</p>
                   </div>
                 </div>
               )}
 
               {/* AI MESSAGE */}
               {msg.role === "assistant" && (
-                <div className="flex gap-3 items-start">
-                  <div className="bg-gradient-to-r from-red-500 to-red-600 text-white p-2.5 rounded-[18px] shadow-sm">
-                    <Bot size={18} />
+                <div className="flex gap-2 sm:gap-3 items-start">
+                  <div className="bg-gradient-to-r from-red-500 to-red-600 text-white p-2 rounded-[14px] sm:rounded-[18px] shadow-sm shrink-0">
+                    <Bot size={16} />
                   </div>
-                  <div className="flex-1 bg-white rounded-[26px] p-5 shadow-sm border border-gray-100 space-y-4">
-                    {(msg.data?.message || msg.content) && (
-                      <div className="bg-slate-50 border border-slate-100 rounded-[18px] p-4">
-                        <p className="text-gray-800 text-sm leading-relaxed whitespace-pre-line">
-                          {msg.data?.message || msg.content}
+                  <div className="flex-1 bg-white rounded-[20px] sm:rounded-[26px] p-4 sm:p-5 shadow-sm border border-gray-100 space-y-4 overflow-hidden">
+                    {(msg.content) && (
+                      <div className="bg-slate-50 border border-slate-100 rounded-[14px] sm:rounded-[18px] p-3 sm:p-4">
+                        <p className="text-gray-800 text-xs sm:text-sm leading-relaxed whitespace-pre-line">
+                          {msg.content}
                         </p>
                       </div>
                     )}
 
                     {/* INTERIOR TOOLS CARDS */}
                     {msg.data?.items?.length > 0 && (
-                      <div className="grid sm:grid-cols-2 gap-4 pt-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                         {msg.data.items.map((item: any) => (
-                          <div key={item._id} className="group overflow-hidden rounded-[24px] border border-gray-100 bg-white shadow-sm hover:shadow-xl transition-all duration-300">
+                          <div key={item._id} className="group overflow-hidden rounded-[20px] border border-gray-100 bg-white shadow-sm hover:shadow-lg transition-all duration-300">
                             <div className="relative overflow-hidden aspect-video bg-gray-100">
                               <img src={item.image} alt={item.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
-                              <div className="absolute top-3 left-3">
-                                <span className="bg-white/95 backdrop-blur-sm text-red-500 px-3 py-1 rounded-full text-[10px] font-bold shadow-sm capitalize">{item.category}</span>
+                              <div className="absolute top-2 left-2">
+                                <span className="bg-white/95 backdrop-blur-sm text-red-500 px-2.5 py-0.5 rounded-full text-[9px] font-bold shadow-sm capitalize">{item.category}</span>
                               </div>
                             </div>
-                            <div className="p-4 space-y-2">
-                              <h2 className="font-bold text-lg text-gray-900 line-clamp-1">{item.title}</h2>
-                              <p className="text-gray-500 text-xs leading-relaxed line-clamp-2">{item.description}</p>
+                            <div className="p-3.5 space-y-1.5">
+                              <h2 className="font-bold text-base text-gray-900 line-clamp-1">{item.title}</h2>
+                              <p className="text-gray-500 text-[11px] leading-relaxed line-clamp-2">{item.description}</p>
                               <div className="flex justify-between items-center pt-2 border-t border-gray-50">
                                 <div>
-                                  <p className="text-[10px] text-gray-400 font-medium">Starting from</p>
-                                  <p className="text-red-500 font-extrabold text-xl">₹{item.price?.toLocaleString()}</p>
+                                  <p className="text-[9px] text-gray-400 font-medium">Starting from</p>
+                                  <p className="text-red-500 font-extrabold text-base">₹{item.price?.toLocaleString()}</p>
                                 </div>
-                                <button className="bg-gray-900 hover:bg-red-500 text-white text-xs px-4 py-2 rounded-xl shadow-sm transition-colors duration-200 font-medium">View Details</button>
+                                <button className="bg-gray-900 hover:bg-red-500 text-white text-[10px] px-3 py-1.5 rounded-lg shadow-sm transition-colors duration-200">View Details</button>
                               </div>
                             </div>
                           </div>
@@ -283,13 +272,13 @@ useDocumentTitle("AI Assistant");
 
                     {/* CONTACT SUPPORT OVERLAY */}
                     {msg.data?.tool === "contactSupport" && msg.data?.data && (
-                      <div className="bg-gradient-to-br from-red-50/50 to-white rounded-[20px] p-4 border border-red-50 space-y-3">
-                        <h3 className="text-sm font-bold text-gray-900">Direct Showroom Channels</h3>
-                        <div className="flex flex-wrap gap-2">
-                          <a href={`tel:${msg.data.data.phone}`} className="flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-800 text-xs font-semibold px-4 py-2 rounded-xl border border-gray-200 shadow-sm transition-all">
-                            <Phone size={14} className="text-green-600" /> Call: {msg.data.data.phone}
+                      <div className="bg-gradient-to-br from-red-50/50 to-white rounded-[16px] p-3 border border-red-50 space-y-2">
+                        <h3 className="text-xs font-bold text-gray-900">Direct Showroom Channels</h3>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <a href={`tel:${msg.data.data.phone}`} className="flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-800 text-[11px] font-semibold px-3 py-2 rounded-xl border border-gray-200 shadow-sm transition-all">
+                            <Phone size={12} className="text-green-600" /> Call: {msg.data.data.phone}
                           </a>
-                          <a href={`https://wa.me/${msg.data.data.whatsapp?.replace("+", "")}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-sm transition-all">
+                          <a href={`https://wa.me/${msg.data.data.whatsapp?.replace("+", "")}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white text-[11px] font-semibold px-3 py-2 rounded-xl shadow-sm transition-all">
                             WhatsApp Connect
                           </a>
                         </div>
@@ -303,13 +292,13 @@ useDocumentTitle("AI Assistant");
 
           {/* LIVE TYPING STREAM */}
           {typingText && (
-            <div className="flex gap-3 items-start animate-fade-in">
-              <div className="bg-gradient-to-r from-red-500 to-red-600 text-white p-2.5 rounded-[18px] shadow-sm">
-                <Bot size={18} />
+            <div className="flex gap-2 sm:gap-3 items-start animate-fade-in">
+              <div className="bg-gradient-to-r from-red-500 to-red-600 text-white p-2 rounded-[14px] sm:rounded-[18px] shadow-sm shrink-0">
+                <Bot size={16} />
               </div>
-              <div className="flex-1 bg-white rounded-[26px] p-5 shadow-sm border border-gray-100">
-                <div className="bg-slate-50 border border-slate-100 rounded-[18px] p-4">
-                  <p className="text-gray-800 text-sm leading-relaxed">
+              <div className="flex-1 bg-white rounded-[20px] sm:rounded-[26px] p-4 sm:p-5 shadow-sm border border-gray-100">
+                <div className="bg-slate-50 border border-slate-100 rounded-[14px] sm:rounded-[18px] p-3 sm:p-4">
+                  <p className="text-gray-800 text-xs sm:text-sm leading-relaxed">
                     {typingText}
                     <span className="inline-block w-1.5 h-3.5 bg-red-500 animate-pulse ml-1 align-middle" />
                   </p>
@@ -320,13 +309,13 @@ useDocumentTitle("AI Assistant");
 
           {/* LOADING STREAM */}
           {loading && !typingText && (
-            <div className="flex gap-3 items-start animate-pulse">
-              <div className="bg-gradient-to-r from-red-500 to-red-600 text-white p-2.5 rounded-[18px] shadow-sm">
-                <Bot size={18} />
+            <div className="flex gap-2 sm:gap-3 items-start animate-pulse">
+              <div className="bg-gradient-to-r from-red-500 to-red-600 text-white p-2 rounded-[14px] sm:rounded-[18px] shadow-sm shrink-0">
+                <Bot size={16} />
               </div>
-              <div className="flex-1 bg-white rounded-[26px] border border-gray-100 p-5 shadow-sm space-y-3">
-                <div className="h-3.5 rounded bg-gray-200 w-full" />
-                <div className="h-3.5 rounded bg-gray-200 w-[60%]" />
+              <div className="flex-1 bg-white rounded-[20px] sm:rounded-[26px] border border-gray-100 p-4 sm:p-5 shadow-sm space-y-2.5">
+                <div className="h-3 rounded bg-gray-200 w-full" />
+                <div className="h-3 rounded bg-gray-200 w-[60%]" />
               </div>
             </div>
           )}
@@ -336,8 +325,9 @@ useDocumentTitle("AI Assistant");
       </div>
 
       {/* INPUT BAR */}
-      <div className="sticky bottom-0 bg-white/90 backdrop-blur-xl border-t border-gray-100 p-4">
-        <div className="max-w-5xl mx-auto flex gap-3 items-center">
+      {/* 🟢 FIXED: Mobile view par `bottom-[56px]` push kiya taaki bottom bar ke upar safely sit kare, aur desktop (`md:bottom-0`) par regular stick rahe */}
+      <div className="fixed bottom-[58px] md:sticky md:bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-gray-100 p-3 sm:p-4 z-20">
+        <div className="max-w-5xl mx-auto flex gap-2 sm:gap-3 items-center">
           <input
             type="text"
             value={message}
@@ -349,14 +339,14 @@ useDocumentTitle("AI Assistant");
               }
             }}
             placeholder="Ghar ke interior ke baare me kuch bhi pucho..."
-            className="flex-1 bg-gray-50 border border-gray-200 rounded-full px-5 py-3 outline-none focus:ring-2 focus:ring-red-400 focus:bg-white transition-all text-sm text-gray-800 shadow-inner"
+            className="flex-1 bg-gray-50 border border-gray-200 rounded-full px-4 py-2.5 sm:px-5 sm:py-3 outline-none focus:ring-2 focus:ring-red-400 focus:bg-white transition-all text-xs sm:text-sm text-gray-800 shadow-inner"
           />
           <button
             onClick={handleGenerate}
             disabled={loading || !message.trim()}
-            className="bg-gradient-to-r from-red-500 to-red-600 hover:opacity-90 active:scale-95 transition-all text-white rounded-full p-3 shadow-md shadow-red-500/10 disabled:opacity-40 disabled:scale-100 disabled:cursor-not-allowed"
+            className="bg-gradient-to-r from-red-500 to-red-600 hover:opacity-90 active:scale-95 transition-all text-white rounded-full p-2.5 sm:p-3 shadow-md shadow-red-500/10 disabled:opacity-40 disabled:scale-100 disabled:cursor-not-allowed shrink-0"
           >
-            <Send size={18} />
+            <Send size={16} />
           </button>
         </div>
       </div>

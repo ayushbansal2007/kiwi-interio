@@ -12,6 +12,7 @@ import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import AIAssistant from "./pages/AIAssistant";
 import ContactQuery from "./pages/ContactQuery"; // 👈 Hamara floating code import kiya
+import InteriorDetailPage from "./pages/InteriorDetailPage";
 
 function App() {
   return (
@@ -39,7 +40,9 @@ function App() {
         <Route path="/admin" element={<Admin />} />
         <Route path="/interiors" element={<InteriorList />} />
         <Route path="/ai-assistant" element={<AIAssistant />} />
+        <Route path="/interior/:id" element={<InteriorDetailPage />} /> 
       </Routes>
+      
 
       {/* 🎯 GLOBAL FLOATING LAYER */}
       {/* Ye Routes ke bahaar hai, isliye har page par right-bottom me floating dikhega */}

@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+// 🟢 FIXED: Type import rules apply kiye aur Router Link ko fetch kiya navigation ke liye
+import type { ReactElement } from "react";
+import { Link } from "react-router-dom";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 
 interface Interior {
@@ -14,7 +17,7 @@ interface Interior {
   tags: string[];
 }
 
-function InteriorList() {
+function InteriorList(): ReactElement {
   useDocumentTitle("The Masterpiece Collection | Kiwi Interio");
     
   const [interiors, setInteriors] = useState<Interior[]>([]);
@@ -31,6 +34,7 @@ function InteriorList() {
       } catch (error) {
         console.log(error);
       } finally {
+       // direct tracking state mutation
         setLoading(false);
       }
     };
@@ -104,73 +108,83 @@ function InteriorList() {
           </div>
         ) : (
           <>
-            {/* 4. The 10x Thin High-End Luxury Grid */}
+            {/* 4. The 10x Thin High-End Luxury eCommerce Grid */}
             <div className="grid lg:grid-cols-4 md:grid-cols-2 gap-x-6 gap-y-16">
               {visibleInteriors.map((item) => (
                 <div
                   key={item._id}
-                  className="group relative flex flex-col justify-between bg-white overflow-hidden transition-all duration-500"
+                  className="group relative flex flex-col justify-between bg-white border border-stone-100 p-3 hover:shadow-xl transition-all duration-500"
                 >
-                  {/* Image Framework with Minimal Frame */}
+                  {/* Image Framework with Router Link binding */}
                   <div className="relative overflow-hidden aspect-[3/4] bg-stone-50 border border-stone-100 shadow-sm">
                     <img
                       src={item.image}
                       alt={item.title}
-                      loading="lazy"
+                      loading="eager"
                       className="w-full h-full object-cover grayscale-[30%] group-hover:grayscale-0 scale-100 group-hover:scale-105 transition-all duration-700 ease-out"
                     />
 
-                    {/* Subtle Category Stamp */}
-                    <div className="absolute top-4 left-4 bg-white px-3 py-1 text-[9px] font-black uppercase tracking-widest text-black border border-stone-200">
-                      {item.style}
-                    </div>
-
-                    {/* 🎯 SIGNATURE KIWI-INTERIO BUTTON POP-UP OVERLAY */}
-                    {/* Modern Clean Mask + Sleek Horizontal Slider Button */}
-                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center p-4">
-                      
-                      {/* Premium Solid Capsule Button Style Pop */}
-                      <div className="w-full max-w-[220px] bg-white text-black py-4 px-5 flex items-center justify-between shadow-2xl border border-red-600 transform translate-y-6 group-hover:translate-y-0 transition-transform duration-500 ease-out">
-                        <div className="flex flex-col text-left">
-                          <span className="text-[9px] font-bold text-red-600 tracking-widest uppercase leading-none mb-1">VIEW WORK</span>
-                          <span className="text-xs font-black tracking-wider text-black uppercase leading-none">KIWI INTERIO</span>
-                        </div>
-                        {/* Sharp Forward Arrow */}
-                        <span className="text-xl font-light transform group-hover:translate-x-1 transition-transform duration-300">
-                          →
-                        </span>
+                    {/* eCommerce Status Tags */}
+                    <div className="absolute top-4 left-4 flex flex-col gap-1.5 items-start">
+                      <div className="bg-black text-white px-3 py-1 text-[9px] font-black uppercase tracking-widest border border-stone-800">
+                        {item.style}
                       </div>
-
+                      <div className="bg-red-600 text-white px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest">
+                        PREMIUM BUILD
+                      </div>
                     </div>
+
+                    {/* 🎯 ECOMMERCE DYNAMIC LINK OVERLAY */}
+                    <Link 
+                      to={`/interior/${item._id}`}
+                      className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-4 gap-3"
+                    >
+                      {/* Interactive View Details Button */}
+                      <div className="w-full max-w-[200px] bg-white text-black py-3.5 px-4 flex items-center justify-between shadow-2xl border border-stone-200 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500 ease-out">
+                        <span className="text-[10px] font-black tracking-widest uppercase">QUICK DETAILS</span>
+                        <span className="text-sm font-light">→</span>
+                      </div>
+                    </Link>
                   </div>
 
                   {/* High Contrast Clean Typography Block */}
-                  <div className="pt-5 space-y-2 flex-grow flex flex-col justify-between">
+                  <div className="pt-4 space-y-2 flex-grow flex flex-col justify-between">
                     <div>
-                      {/* Location or Tag Marker */}
+                      {/* Category Location Path */}
                       <p className="text-[10px] font-bold tracking-[0.25em] text-red-600 uppercase">
                         {item.category} <span className="text-stone-300 font-normal mx-1">/</span> {item.subcategory}
                       </p>
 
-                      {/* Display Header Title */}
-                      <h3 className="text-lg font-bold text-black uppercase tracking-tight mt-1 group-hover:text-red-600 transition-colors duration-300">
-                        {item.title}
-                      </h3>
+                      {/* Display Header Title linked to product description */}
+                      <Link to={`/interior/${item._id}`}>
+                        <h3 className="text-md font-black text-black uppercase tracking-tight mt-1 hover:text-red-600 transition-colors duration-300">
+                          {item.title}
+                        </h3>
+                      </Link>
 
-                      {/* Micro description - Hidden elegantly or clamped */}
-                      <p className="text-stone-500 text-xs font-light leading-relaxed mt-2 line-clamp-2">
+                      <p className="text-stone-500 text-xs font-light leading-relaxed mt-1 line-clamp-2">
                         {item.description}
                       </p>
                     </div>
 
-                    {/* Bottom Pricing Row */}
-                    <div className="flex items-baseline justify-between pt-4 mt-4 border-t border-stone-100">
-                      <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">
-                        Investment Value
-                      </span>
-                      <span className="text-lg font-black text-black">
-                        ₹{item.price.toLocaleString("en-IN")}
-                      </span>
+                    {/* eCommerce Operational Data Injections */}
+                    <div className="space-y-3 pt-3 mt-2 border-t border-stone-100">
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">
+                          ESTIMATED VALUE
+                        </span>
+                        <span className="text-lg font-black text-black tracking-tight">
+                          ₹{item.price.toLocaleString("en-IN")}
+                        </span>
+                      </div>
+
+                      {/* 🛍️ BUY NOW / BOOK CONSULTATION ECOMMERCE CTA BUTTON */}
+                      <Link 
+                        to={`/interior/${item._id}`} 
+                        className="block w-full text-center bg-black hover:bg-red-600 text-white text-[10px] font-bold uppercase tracking-widest py-3.5 transition-colors duration-300"
+                      >
+                        BUY NOW & CUSTOMIZE
+                      </Link>
                     </div>
                   </div>
 
