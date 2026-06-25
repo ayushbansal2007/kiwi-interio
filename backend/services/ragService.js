@@ -27,12 +27,12 @@ async function kiwiRagPipeline(userQuery) {
       return { contextText: "", dbItems: [] };
     }
 
-    // 1. Model get karo aur user query ka embedding banao
+  
     const model = await getExtractor();
     const output = await model(userQuery, { pooling: "mean", normalize: true });
     const queryEmbedding = Array.from(output.data);
 
-    // 2. MONGO DB VECTOR SEARCH: Jo index humne 'free_vector_index' banaya tha use call karo
+    
     const vectorSearchResults = await Interior.aggregate([
       {
         $vectorSearch: {

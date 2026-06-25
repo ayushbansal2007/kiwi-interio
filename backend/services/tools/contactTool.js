@@ -10,7 +10,7 @@ function contactTool() {
       "support@kiwiinteriors.com",
 
     officeAddress:
-      "Bhiwani, Haryana, India",
+      "Bhiwari, Haryana, India",
 
     supportHours:
       "10 AM - 7 PM",

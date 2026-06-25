@@ -1,42 +1,13 @@
-const express = require("express");
+const express = require("express"); // 👈 Isko 'express' kar do bhai!
 const router = express.Router();
 const Query = require("../models/Query");
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend"); // 👈 Nodemailer ki jagah Resend Import kiya
 
-// ✉️ CLOUD-COMPATIBLE NODEMAILER TRANSPORTER (UPDATED FOR RENDER PRODUCTION)
-// ✉️ HARDENED CLOUD TRANSPORTER (FORCED IPV4 PROTOCOL FOR RENDER)
-// ✉️ RE-ARCHITECTED TRANSPORTER FOR RENDER TIMEOUT BYPASS
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false, // 587 ke liye explicit false
-  pool: true,    // ⚡ PRO TIP: Connection reuse karega, har baar naya handshake open nahi karega
-  maxConnections: 3,
-  maxMessages: 100,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false,
-    ciphers: 'SSLv3' // 👈 Cloud firewall packet restrictions ko clear karne ke liye
-  },
-  connectionTimeout: 20000, // Timeout badha kar 20 seconds kiya taaki Render load buffer handle ho sake
-  greetingTimeout: 20000,
-  socketTimeout: 20000
-});
-
-// Verify connection configuration upon server boot
-transporter.verify((error, success) => {
-  if (error) {
-    console.error("❌ SMTP Nodemailer Configuration Failed:", error);
-  } else {
-    console.log("🚀 SMTP Server is ready to dispatch emails smoothly!");
-  }
-});
+// 🚀 INITIALIZE RESEND ENGINE WITH SECURE ENV KEY
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 /* =========================================================================
-    🟢 PUBLIC ROUTE: Submit Query (With Dynamic Math Ticket & Async Email Alert)
+    🟢 PUBLIC ROUTE: Submit Query (With Dynamic Ticket & Resend HTTP API)
    ========================================================================= */
 router.post("/submit", async (req, res) => {
   try {
@@ -60,10 +31,10 @@ router.post("/submit", async (req, res) => {
     // Save to MongoDB Cloud
     await newQuery.save();
 
-    // 📬 PREMIUM HTML EMAIL TEMPLATE DESIGN
-    const mailOptions = {
-      from: `"Kiwi Interio Studio" <${process.env.EMAIL_USER}>`,
-      to: email, // Client ko jayega direct uske inbox me
+    // 📬 PREMIUM HTML EMAIL TEMPLATE DESIGN FOR RESEND
+    const mailPayload = {
+      from: "Kiwi Interio Studio <onboarding@resend.dev>", // 👈 Free account me hamesha yahi domain rahega sandboxing ke liye
+      to: email, // Client ka actual email id
       subject: `Inquiry Registered Successfully - Ticket: ${generatedTicketId}`,
       html: `
         <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e5e0; padding: 40px; color: #1c1917; background-color: #ffffff;">
@@ -86,24 +57,16 @@ router.post("/submit", async (req, res) => {
             <p style="font-size: 14px; font-weight: bold; margin: 0; color: #000000;">Regards,</p>
             <p style="font-size: 13px; margin: 4px 0 0 0; color: #57534e;">Operations Desk<br />Kiwi Interio Studio</p>
           </div>
-          
-          <div style="margin-top: 30px; background-color: #fafaf9; padding: 12px; text-align: center; border-radius: 4px;">
-            <p style="font-size: 11px; color: #a8a29e; margin: 0;">This is an automated transactional system notification. Please do not reply directly to this mail string.</p>
-          </div>
         </div>
       `,
     };
 
-    // ⚡ PRODUCTION ASYNC TRICK
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error("❌ Production Nodemailer Execution Error:", error);
-      } else {
-        console.log(`🚀 Ticket [${generatedTicketId}] Alert Email Dispatched Successfully:`, info.response);
-      }
-    });
+    // ⚡ FIRE ASYNC RESEND API CALL (Bypasses port limits instantly!)
+    resend.emails.send(mailPayload)
+      .then((data) => console.log(`🚀 Resend HTTP Dispatch Success! ID:`, data.id))
+      .catch((err) => console.error("❌ Resend Transmission Fail:", err));
 
-    // Immediate user response
+    // Immediate Response to React Frontend
     return res.status(201).json({ 
       success: true, 
       message: "Query submitted successfully!",
@@ -128,7 +91,7 @@ router.get("/all", async (req, res) => {
 });
 
 /* =========================================================================
-    🟢 DEV ROUTE: Update/Delete Status Logic (With Resolution Email Pipeline)
+    🟢 DEV ROUTE: Update/Delete Status Logic (With Resend Resolution Email)
    ========================================================================= */
 router.post("/update-status/:id", async (req, res) => {
   try {
@@ -138,7 +101,7 @@ router.post("/update-status/:id", async (req, res) => {
       return res.status(400).json({ message: `Invalid status value received: ${status}` });
     }
 
-    // 🎯 IF STATUS IS RESOLVED -> SEND RESOLUTION EMAIL & THEN DELETE
+    // 🎯 IF STATUS IS RESOLVED -> SEND CLOSURE EMAIL VIA HTTP & DELETE FROM DB
     if (status === "Resolved") {
       const currentQuery = await Query.findById(req.params.id);
 
@@ -146,8 +109,8 @@ router.post("/update-status/:id", async (req, res) => {
         return res.status(404).json({ message: "Query log not found in database" });
       }
 
-      const resolutionMailOptions = {
-        from: `"Kiwi Interio Studio" <${process.env.EMAIL_USER}>`,
+      const resolutionPayload = {
+        from: "Kiwi Interio Studio <onboarding@resend.dev>",
         to: currentQuery.email,
         subject: `Ticket Resolved Successfully - Ticket: ${currentQuery.ticketId || "KI-LOG"}`,
         html: `
@@ -166,23 +129,16 @@ router.post("/update-status/:id", async (req, res) => {
             </div>
             
             <p style="font-size: 13px; line-height: 1.6; color: #6b6661;">If you are fully satisfied with the communication or solution provided by our relationship team, you can safely ignore this automated transmission thread.</p>
-            
-            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e5e0;">
-              <p style="font-size: 13px; font-weight: bold; margin: 0; color: #000000;">Thank you for choosing Kiwi Interio,</p>
-              <p style="font-size: 12px; margin: 4px 0 0 0; color: #78716c;">HR & Operations Engine</p>
-            </div>
           </div>
         `,
       };
 
-      transporter.sendMail(resolutionMailOptions, (error, info) => {
-        if (error) {
-          console.error("❌ Ticket Resolution Email Delivery Failed:", error);
-        } else {
-          console.log(`🚀 Resolution Email Sent successfully to ${currentQuery.email}:`, info.response);
-        }
-      });
+      // Fire Closure Email via Resend API
+      resend.emails.send(resolutionPayload)
+        .then((data) => console.log(`🚀 Resolution Email Dispatched via HTTP! ID:`, data.id))
+        .catch((err) => console.error("❌ Resolution Email Failed:", err));
 
+      // Clear from MongoDB Cloud
       await Query.findByIdAndDelete(req.params.id);
 
       return res.status(200).json({ 
