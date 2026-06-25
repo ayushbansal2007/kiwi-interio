@@ -1,4 +1,4 @@
-import { ReactElement } from "react";
+import type { ReactElement } from "react";
 
 // 🛡️ TYPE INTERFACE FOR REVIEWS
 interface ReviewItem {

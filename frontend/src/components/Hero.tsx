@@ -1,6 +1,7 @@
 import {  useRef } from "react";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 import interiorVideo from "../assets/3967-175963622_medium.mp4";
+import type { ReactElement } from "react";
 
 function Hero(): ReactElement {
   useDocumentTitle("Powered By Kiwi Interio | Premium Designs");

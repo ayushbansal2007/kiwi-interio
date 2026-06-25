@@ -1,4 +1,4 @@
-import { ReactElement } from "react";
+import type { ReactElement } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 export default function Navbar(): ReactElement {

@@ -1,4 +1,4 @@
-import { ReactElement } from "react";
+import type { ReactElement } from "react";
 
 // 🛡️ TYPE SPECIFICATION FOR THE INTERFACE
 interface BenefitItem {
