@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import useDocumentTitle from "../hooks/useDocumentTitle";
-import QueriesList from "./QueriesList"; // Hamara banaya hua luxury query loader
+import QueriesList from "./QueriesList"; 
 
 interface Interior {
   _id: string;
@@ -17,12 +17,9 @@ interface Interior {
 }
 
 function Admin() {
-  // 🟢 1. LocalStorage se raw data uthaya
   const storedRole = localStorage.getItem("role")?.toLowerCase(); 
   const userEmail = localStorage.getItem("email")?.toLowerCase() || "";
 
-  // 🎯 2. FRONTEND IF-ELSE ROLE BYPASS LOGIC
-  // Agar database me role user bhi ho, toh bhi ye emails check karke system role overwrite kar dega
   let finalRole = storedRole;
 
   if (userEmail === "hr@kiwiinterio.com") {
@@ -33,10 +30,8 @@ function Admin() {
     finalRole = "manager";
   }
 
-  // Global Access Layer validation based on bypassed role
   const hasAccess = finalRole === "admin" || finalRole === "hr" || finalRole === "manager";
 
-  // Guard: Agar teeno me se koi match nahi hua, toh seedha home page par out!
   if (!hasAccess) {
     return <Navigate to="/" />;
   }
@@ -53,11 +48,12 @@ function Admin() {
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [successId, setSuccessId] = useState<string | null>(null);
 
-  // 🎯 3. CHOOSE FIRST LOADING PAGE
-  // Agar HR login karega toh pehle "queries" load hoga, Admin/Manager ke liye "catalog"
   const [currentView, setCurrentView] = useState<"catalog" | "queries">(
     finalRole === "hr" ? "queries" : "catalog"
   );
+
+  // ✨ STATE FOR FILTERING CATEGORY
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
   const [availableCategories, setAvailableCategories] = useState<string[]>([
     "Living Room", "Kitchen", "Bedroom", "Bathroom", "Office", "Dining Room"
@@ -66,7 +62,6 @@ function Admin() {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://kiwi-interio.onrender.com";
 
   useEffect(() => {
-    // Only fetch interior catalog if user is Admin or Manager (HR gets query blocks)
     if (finalRole === "admin" || finalRole === "manager") {
       fetch(`${API_BASE_URL}/api/interiors`)
         .then((res) => res.json())
@@ -122,58 +117,63 @@ function Admin() {
       console.error("Update Error:", error);
       alert("Network error.");
     } finally {
-      setLoadingId(null);
+      if (loadingId === id) setLoadingId(null);
     }
   };
 
+  // ✨ FILTER LOGIC FOR CARDS
+  const filteredInteriors = selectedCategory === "All"
+    ? interiors
+    : interiors.filter(item => item.category?.toLowerCase() === selectedCategory.toLowerCase());
+
   return (
-    <div className="min-h-screen bg-white text-black py-16 px-6 md:p-12 font-sans">
+    <div className="min-h-screen bg-neutral-50 text-neutral-900 py-12 px-4 sm:px-6 lg:px-8 font-sans antialiased">
       <div className="max-w-7xl mx-auto">
         
         {/* EDITORIAL TOP HEADER LAYER */}
-        <header className="flex flex-col md:flex-row md:items-end justify-between border-b-2 border-black pb-8 mb-12">
+        <header className="flex flex-col md:flex-row md:items-end justify-between border-b border-neutral-300 pb-8 mb-10 gap-6">
           <div>
-            <p className="text-[10px] font-bold tracking-[0.4em] uppercase text-red-600 mb-2">
+            <p className="text-[10px] font-bold tracking-[0.3em] uppercase text-red-600 mb-2">
               Kiwi Interio Enterprise Architecture
             </p>
-            <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-none">
+            <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-none text-neutral-950">
               {currentView === "catalog" ? "Catalog Workspace" : "Query Operations"}
             </h1>
           </div>
           
-          {/* Real-time Dynamic Identity Badge */}
-          <div className="mt-6 md:mt-0 bg-black text-white px-6 py-4 border border-black flex flex-col items-start md:items-end">
-            <span className="text-[10px] font-bold tracking-[0.2em] text-red-500 uppercase">
+          {/* Identity Badge */}
+          <div className="bg-neutral-950 text-white px-5 py-3.5 rounded-sm shadow-sm flex flex-col items-start md:items-end min-w-[240px]">
+            <span className="text-[9px] font-bold tracking-[0.2em] text-red-400 uppercase">
               Authenticated Session
             </span>
-            <span className="text-sm font-black uppercase tracking-tight mt-1">
+            <span className="text-sm font-bold uppercase tracking-tight mt-1">
               {finalRole} Account
             </span>
-            <span className="text-[10px] text-stone-400 font-mono mt-0.5">
+            <span className="text-[10px] text-neutral-400 font-mono mt-0.5 break-all w-full md:text-right">
               {userEmail}
             </span>
           </div>
         </header>
 
-        {/* 🛠— NAVIGATION TAB BAR - ONLY ADMIN CAN SWITCH VISUALLY */}
+        {/* 🛠— NAVIGATION TAB BAR */}
         {finalRole === "admin" && (
-          <div className="flex gap-4 mb-12 border-b border-stone-100 pb-6">
+          <div className="flex gap-3 mb-6 border-b border-neutral-200 pb-5 overflow-x-auto scaffolding-scroll">
             <button
               onClick={() => setCurrentView("catalog")}
-              className={`text-xs font-bold uppercase tracking-[0.2em] px-6 py-3 border transition-all ${
+              className={`text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-md transition-all whitespace-nowrap ${
                 currentView === "catalog"
-                  ? "bg-black text-white border-black"
-                  : "bg-white text-stone-400 border-stone-200 hover:text-black hover:border-black"
+                  ? "bg-neutral-950 text-white shadow-sm"
+                  : "bg-white text-neutral-500 border border-neutral-200 hover:text-neutral-900 hover:border-neutral-400"
               }`}
             >
               Interior Catalog
             </button>
             <button
               onClick={() => setCurrentView("queries")}
-              className={`text-xs font-bold uppercase tracking-[0.2em] px-6 py-3 border transition-all ${
+              className={`text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-md transition-all whitespace-nowrap ${
                 currentView === "queries"
-                  ? "bg-black text-white border-black"
-                  : "bg-white text-stone-400 border-stone-200 hover:text-black hover:border-black"
+                  ? "bg-neutral-950 text-white shadow-sm"
+                  : "bg-white text-neutral-500 border border-neutral-200 hover:text-neutral-900 hover:border-neutral-400"
               }`}
             >
               Customer Queries
@@ -181,145 +181,207 @@ function Admin() {
           </div>
         )}
 
-        {/* 🔀 ACCESS ROUTER LOGIC RENDERING */}
+        {/* ACCESS ROUTER RENDERING */}
         {currentView === "queries" ? (
           <QueriesList />
         ) : (
-          /* =============================================================
-             💎 ADMIN & MANAGER VIEW: LUXURY INTERIOR CATALOG CONTROL
-             ============================================================= */
-          <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-12">
-            {interiors.map((item) => (
-              <div key={item._id} className="border border-stone-200 bg-white flex flex-col justify-between group">
-                
-                {/* Product Frame */}
-                <div className="relative overflow-hidden aspect-[16/10] bg-stone-100 border-b border-stone-200">
-                  <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
-                  <div className="absolute top-4 right-4 bg-black text-white px-3 py-1 text-[9px] font-bold uppercase tracking-wider">
-                    {item.roomType || "No Type"}
-                  </div>
-                </div>
-
-                {/* Form Input Group */}
-                <div className="p-6 space-y-4 flex-1 flex flex-col justify-between">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-[9px] font-bold uppercase text-stone-400 block mb-1 tracking-wider">Title Field</label>
-                      <input
-                        type="text"
-                        value={item.title}
-                        className="w-full border-b border-stone-200 focus:border-red-600 py-1.5 transition-all outline-none text-sm font-bold text-black uppercase tracking-tight bg-transparent"
-                        onChange={(e) => handleInputChange(item._id, "title", e.target.value)}
-                      />
-                    </div>
-
-                    {/* Taxonomy Inputs */}
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <label className="text-[9px] font-bold uppercase text-stone-400 block mb-1 tracking-wider">Category</label>
-                        <select
-                          value={item.category || ""}
-                          className="w-full border-b border-stone-200 focus:border-red-600 py-1 bg-transparent text-xs outline-none h-[28px]"
-                          onChange={(e) => {
-                            if (e.target.value === "ADD_NEW") {
-                              handleAddNewCategory(item._id);
-                            } else {
-                              handleInputChange(item._id, "category", e.target.value);
-                            }
-                          }}
-                        >
-                          <option value="" disabled>Select</option>
-                          {availableCategories.map((cat) => (
-                            <option key={cat} value={cat}>{cat}</option>
-                          ))}
-                          <option value="ADD_NEW" className="text-red-600 font-bold">+ New</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-[9px] font-bold uppercase text-stone-400 block mb-1 tracking-wider">Subcat</label>
-                        <input
-                          type="text"
-                          value={item.subcategory || ""}
-                          className="w-full border-b border-stone-200 focus:border-red-600 py-1 bg-transparent text-xs outline-none"
-                          onChange={(e) => handleInputChange(item._id, "subcategory", e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[9px] font-bold uppercase text-stone-400 block mb-1 tracking-wider">Style</label>
-                        <input
-                          type="text"
-                          value={item.style || ""}
-                          className="w-full border-b border-stone-200 focus:border-red-600 py-1 bg-transparent text-xs outline-none"
-                          onChange={(e) => handleInputChange(item._id, "style", e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Pricing Grid */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-[9px] font-bold uppercase text-stone-400 block mb-1 tracking-wider">Room Context</label>
-                        <input
-                          type="text"
-                          value={item.roomType || ""}
-                          className="w-full border-b border-stone-200 focus:border-red-600 py-1 bg-transparent text-xs outline-none"
-                          onChange={(e) => handleInputChange(item._id, "roomType", e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[9px] font-bold uppercase text-stone-400 block mb-1 tracking-wider">Price (₹)</label>
-                        <input
-                          type="number"
-                          value={item.price}
-                          className="w-full border-b border-stone-200 focus:border-red-600 py-1 bg-transparent text-xs font-bold text-black"
-                          onChange={(e) => handleInputChange(item._id, "price", Number(e.target.value))}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Search Tags */}
-                    <div>
-                      <label className="text-[9px] font-bold uppercase text-stone-400 block mb-1 tracking-wider">Search Tags</label>
-                      <input
-                        type="text"
-                        value={item.tags ? item.tags.join(", ") : ""}
-                        className="w-full border-b border-stone-200 focus:border-red-600 py-1 bg-transparent text-xs font-mono outline-none text-stone-600"
-                        onChange={(e) => {
-                          const arrayTags = e.target.value.split(",").map(tag => tag.trim());
-                          handleInputChange(item._id, "tags", arrayTags);
-                        }}
-                      />
-                    </div>
-
-                    {/* RAG Description */}
-                    <div>
-                      <label className="text-[9px] font-bold uppercase text-stone-400 block mb-1 tracking-wider">RAG Context Description</label>
-                      <textarea
-                        value={item.description}
-                        rows={2}
-                        className="w-full border border-stone-200 focus:border-black p-2 mt-1 text-xs text-stone-600 resize-none outline-none"
-                        onChange={(e) => handleInputChange(item._id, "description", e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Save Action Button */}
+          <>
+            {/* ✨ DYNAMIC CATEGORY FILTER PILLS (NEW) */}
+            <div className="mb-8 bg-white p-4 rounded-xl border border-neutral-200 shadow-xs">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 mb-3">
+                Quick Category Filter ({filteredInteriors.length} items found)
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setSelectedCategory("All")}
+                  className={`text-xs px-4 py-2 rounded-full font-medium transition-all ${
+                    selectedCategory === "All"
+                      ? "bg-red-600 text-white shadow-xs"
+                      : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                  }`}
+                >
+                  All Workspace
+                </button>
+                {availableCategories.map((cat) => (
                   <button
-                    onClick={() => handleUpdate(item._id, item)}
-                    disabled={loadingId === item._id}
-                    className={`w-full mt-6 py-3 text-[10px] font-bold uppercase tracking-widest transition-all ${
-                      successId === item._id
-                        ? "bg-emerald-600 text-white"
-                        : "bg-black text-white hover:bg-red-600"
-                    } disabled:opacity-40`}
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`text-xs px-4 py-2 rounded-full font-medium transition-all ${
+                      selectedCategory === cat
+                        ? "bg-neutral-950 text-white shadow-xs"
+                        : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                    }`}
                   >
-                    {loadingId === item._id ? "Syncing Schema..." : successId === item._id ? "✓ Data Synchronized" : "Save Changes"}
+                    {cat}
                   </button>
-                </div>
-
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+
+            {/* Empty State Handler */}
+            {filteredInteriors.length === 0 && (
+              <div className="text-center py-16 bg-white border border-dashed border-neutral-300 rounded-xl">
+                <p className="text-sm text-neutral-500 font-medium">Is category me abhi koi data nahi mila.</p>
+              </div>
+            )}
+
+            {/* =============================================================
+                💎 CATALOG CONTROL GRID (RESPONSIVE & LUXE)
+               ============================================================= */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {filteredInteriors.map((item) => (
+                <div key={item._id} className="bg-white rounded-xl border border-neutral-200 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden group">
+                  
+                  {/* Image Showcase Frame */}
+                  <div className="relative overflow-hidden aspect-[16/10] bg-neutral-100 border-b border-neutral-100">
+                    <img 
+                      src={item.image || "https://placehold.co/600x400?text=No+Image+Provided"} 
+                      alt={item.title} 
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" 
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "https://placehold.co/600x400?text=Invalid+Image+URL";
+                      }}
+                    />
+                    <div className="absolute top-3 right-3 bg-neutral-950/90 backdrop-blur-xs text-white px-2.5 py-1 rounded text-[9px] font-bold uppercase tracking-wider shadow-sm">
+                      {item.roomType || "General"}
+                    </div>
+                  </div>
+
+                  {/* Content Configuration Form */}
+                  <div className="p-5 flex-1 flex flex-col justify-between space-y-5">
+                    <div className="space-y-4">
+                      
+                      {/* Title Input */}
+                      <div>
+                        <label className="text-[10px] font-bold uppercase text-neutral-400 block mb-1 tracking-wider">Design Title</label>
+                        <input
+                          type="text"
+                          value={item.title}
+                          className="w-full border border-neutral-200 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 rounded px-3 py-1.5 transition-all outline-none text-sm font-semibold text-neutral-900"
+                          onChange={(e) => handleInputChange(item._id, "title", e.target.value)}
+                        />
+                      </div>
+
+                      {/* Image Resource Link */}
+                      <div>
+                        <label className="text-[10px] font-bold uppercase text-neutral-400 block mb-1 tracking-wider">Image Resource Link</label>
+                        <input
+                          type="text"
+                          value={item.image}
+                          placeholder="https://example.com/image.jpg"
+                          className="w-full border border-neutral-200 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 rounded px-3 py-1.5 transition-all outline-none text-xs font-mono text-neutral-600 bg-neutral-50/50"
+                          onChange={(e) => handleInputChange(item._id, "image", e.target.value)}
+                        />
+                      </div>
+
+                      {/* Taxonomy Grid */}
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <label className="text-[10px] font-bold uppercase text-neutral-400 block mb-1 tracking-wider">Category</label>
+                          <select
+                            value={item.category || ""}
+                            className="w-full border border-neutral-200 focus:border-neutral-900 rounded px-2 py-1.5 text-xs outline-none bg-white h-[34px]"
+                            onChange={(e) => {
+                              if (e.target.value === "ADD_NEW") {
+                                handleAddNewCategory(item._id);
+                              } else {
+                                handleInputChange(item._id, "category", e.target.value);
+                              }
+                            }}
+                          >
+                            <option value="" disabled>Select</option>
+                            {availableCategories.map((cat) => (
+                              <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                            <option value="ADD_NEW" className="text-red-600 font-bold">+ Create New</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold uppercase text-neutral-400 block mb-1 tracking-wider">Subcat</label>
+                          <input
+                            type="text"
+                            value={item.subcategory || ""}
+                            className="w-full border border-neutral-200 focus:border-neutral-900 rounded px-2 py-1.5 text-xs outline-none h-[34px]"
+                            onChange={(e) => handleInputChange(item._id, "subcategory", e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold uppercase text-neutral-400 block mb-1 tracking-wider">Style</label>
+                          <input
+                            type="text"
+                            value={item.style || ""}
+                            className="w-full border border-neutral-200 focus:border-neutral-900 rounded px-2 py-1.5 text-xs outline-none h-[34px]"
+                            onChange={(e) => handleInputChange(item._id, "style", e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Metadata Specs */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[10px] font-bold uppercase text-neutral-400 block mb-1 tracking-wider">Room Context</label>
+                          <input
+                            type="text"
+                            value={item.roomType || ""}
+                            className="w-full border border-neutral-200 focus:border-neutral-900 rounded px-3 py-1.5 text-xs outline-none"
+                            onChange={(e) => handleInputChange(item._id, "roomType", e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold uppercase text-neutral-400 block mb-1 tracking-wider">Price (₹)</label>
+                          <input
+                            type="number"
+                            value={item.price}
+                            className="w-full border border-neutral-200 focus:border-neutral-900 rounded px-3 py-1.5 text-xs font-bold text-neutral-900"
+                            onChange={(e) => handleInputChange(item._id, "price", Number(e.target.value))}
+                        />
+                        </div>
+                      </div>
+
+                      {/* Search Tags */}
+                      <div>
+                        <label className="text-[10px] font-bold uppercase text-neutral-400 block mb-1 tracking-wider">Tags (Comma Separated)</label>
+                        <input
+                          type="text"
+                          value={item.tags ? item.tags.join(", ") : ""}
+                          className="w-full border border-neutral-200 focus:border-neutral-900 rounded px-3 py-1.5 text-xs font-mono text-neutral-600"
+                          onChange={(e) => {
+                            const arrayTags = e.target.value.split(",").map(tag => tag.trim());
+                            handleInputChange(item._id, "tags", arrayTags);
+                          }}
+                        />
+                      </div>
+
+                      {/* Description Textarea */}
+                      <div>
+                        <label className="text-[10px] font-bold uppercase text-neutral-400 block mb-1 tracking-wider">RAG Prompt Context Description</label>
+                        <textarea
+                          value={item.description}
+                          rows={3}
+                          className="w-full border border-neutral-200 focus:border-neutral-900 rounded p-2.5 text-xs text-neutral-600 resize-none outline-none bg-neutral-50/30"
+                          onChange={(e) => handleInputChange(item._id, "description", e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Operational Sync Action */}
+                    <button
+                      onClick={() => handleUpdate(item._id, item)}
+                      disabled={loadingId === item._id}
+                      className={`w-full py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                        successId === item._id
+                          ? "bg-emerald-600 text-white shadow-xs"
+                          : "bg-neutral-950 text-white hover:bg-neutral-800 shadow-sm"
+                      } disabled:opacity-40 disabled:cursor-not-allowed`}
+                    >
+                      {loadingId === item._id ? "Syncing Schema..." : successId === item._id ? "✓ Data Synchronized" : "Save Changes"}
+                    </button>
+                  </div>
+
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>
