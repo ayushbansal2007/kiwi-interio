@@ -2,43 +2,67 @@ import React from 'react';
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="w-full bg-white/90 backdrop-blur-md border-t border-gray-100 py-3 px-4 mt-auto">
-      <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] sm:text-xs text-gray-400 font-medium tracking-wide">
+    <footer className="w-full bg-gradient-to-b from-transparent to-slate-900 text-slate-300 pt-10 mt-auto border-t border-slate-800/40 font-sans">
+      <div className="max-w-5xl mx-auto px-6">
         
-        {/* Left Side: Branding */}
-        <div className="flex items-center gap-2">
-          <span className="text-gray-300">Powered by</span>
-          <span className="font-bold bg-gradient-to-r from-red-500 to-red-600 bg-clip-text text-transparent">
-            Kiwi Interio Engine
-          </span>
-          <span className="text-[9px] bg-red-50 text-red-500 font-bold px-1.5 py-0.5 rounded-md">
-            v2.1
-          </span>
+        {/* Main Grid Structure */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pb-8 border-b border-slate-800/60">
+          
+          {/* Brand Vision Section */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-6 bg-red-500 rounded-full animate-pulse" />
+              <h3 className="text-base font-extrabold text-white uppercase tracking-wider">
+                Kiwi Interio <span className="text-red-500">✨</span>
+              </h3>
+            </div>
+            <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
+              Aapke sapno ke ghar ko haqeeqat banane ke liye modern designs aur premium automated budget optimization ka perfect blend.
+            </p>
+          </div>
+
+          {/* Quick Creative Tagline Section */}
+          <div className="flex flex-col justify-center space-y-1 bg-slate-800/30 rounded-2xl p-4 border border-slate-700/20 backdrop-blur-sm">
+            <span className="text-[10px] text-red-400 font-bold tracking-widest uppercase">Design Philosophy</span>
+            <p className="text-xs font-semibold text-slate-200 italic">
+              "Your space should tell the story of who you are, and be a collection of what you love."
+            </p>
+          </div>
+
+          {/* Core Feature Badges */}
+          <div className="flex flex-col justify-center space-y-2.5 sm:pl-8">
+            <div className="flex items-center gap-2 text-xs font-medium hover:text-white transition-colors duration-200 cursor-pointer">
+              <span className="text-red-500 text-sm">✦</span> 100+ Premium Catalogs
+            </div>
+            <div className="flex items-center gap-2 text-xs font-medium hover:text-white transition-colors duration-200 cursor-pointer">
+              <span className="text-red-500 text-sm">✦</span> Real-Time Smart RAG Engine
+            </div>
+            <div className="flex items-center gap-2 text-xs font-medium hover:text-white transition-colors duration-200 cursor-pointer">
+              <span className="text-red-500 text-sm">✦</span> Secured Data Architecture
+            </div>
+          </div>
+
         </div>
 
-        {/* Right Side: Security Badge & Copyright */}
-        <div className="flex items-center gap-4">
-          <div className="hidden sm:flex items-center gap-1 text-gray-400">
-            {/* Inline Lock SVG to prevent dependency breakage */}
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              className="w-3 h-3 text-emerald-500"
-              strokeWidth="2.5" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-            >
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-            </svg>
-            <span>Secure End-to-End Encryption</span>
-          </div>
+        {/* Bottom Bar: Copyright & Engine Status */}
+        <div className="flex flex-col sm:flex-row items-center justify-between py-4 gap-3 text-[11px] text-slate-500 font-medium">
           
-          <span className="text-gray-400/80">
-            © {new Date().getFullYear()} Kiwi Clean. All rights reserved.
-          </span>
+          {/* Left Block */}
+          <div className="flex items-center gap-2.5">
+            <span>Engine Status:</span>
+            <div className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full text-[10px] font-bold">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+              Operational v2.1
+            </div>
+          </div>
+
+          {/* Right Block */}
+          <div className="flex items-center gap-1">
+            <span>© {new Date().getFullYear()}</span>
+            <span className="text-slate-400 font-bold hover:text-red-500 transition-colors duration-200 cursor-pointer">Kiwi Clean</span>
+            <span>• All rights reserved.</span>
+          </div>
+
         </div>
 
       </div>
