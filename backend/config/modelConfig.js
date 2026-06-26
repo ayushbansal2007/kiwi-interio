@@ -12,7 +12,7 @@ const modelConfig = {
   maxPromptLength: 12000, 
 
   // Chat history ke messages control karne ke liye context limit (Tokens me nahi, messages array count me)
-  maxHistoryMessages: 6, 
+  maxHistoryMessages: 20, 
 };
 
 module.exports = modelConfig;

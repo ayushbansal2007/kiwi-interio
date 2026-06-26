@@ -1,10 +1,10 @@
 const Chat = require("../models/chatModel");
 
 /**
- * Save Message securely with mandatory userId validation
- * (Called inside controller to persist user and assistant interactions)
+ * Save Message securely with mandatory userId validation & dynamic metadata support
+ * 🟢 FIXED: Added 'data' field so interior cards/tools layout can be persisted in MongoDB
  */
-async function saveMessage({ userId, role, message }) {
+async function saveMessage({ userId, role, message, data = null }) {
   try {
     // 🛡️ CRITICAL CHECK: Strict Type and Value validation
     if (!userId || userId === "undefined" || userId === "null" || String(userId).trim() === "") {
@@ -13,10 +13,12 @@ async function saveMessage({ userId, role, message }) {
     }
 
     // Database core persistence
+    // 🟢 FIXED: 'data' is now passed into the database document
     const savedChat = await Chat.create({
       userId,
       role,
       message,
+      data: data || null, 
     });
 
     return savedChat;
@@ -28,18 +30,17 @@ async function saveMessage({ userId, role, message }) {
 /**
  * Get Conversation securely by forcing strict userId filtering + .lean() optimization
  * @param {string} userId - Unique identity of the user
- * @param {number} limitCount - Context window dynamic limit (Config se paas hoga)
+ * @param {number} limitCount - Increased default limit to prevent aggressive slicing
  */
-async function getConversation(userId, limitCount = 6) {
+async function getConversation(userId, limitCount = 30) { // 🟢 FIXED: Default limit badha kar 30 kiya
   try {
-    // 🛡️ CRITICAL CHECK: Agar token expired hai ya invalid userId hai, leak mat hone do data
+    // 🛡️ CRITICAL CHECK: Security Guardrail
     if (!userId || userId === "undefined" || userId === "null" || String(userId).trim() === "") {
       console.warn("⚠️ WARNING: getConversation called with empty or invalid userId. Blocking query.");
-      return []; // Return empty array to protect user privacy
+      return []; 
     }
 
-    // 🔥 100x Optimization: .lean() added to fetch raw, plain JavaScript objects from MongoDB
-    // Isse Mongoose ke memory heavy internal triggers (change tracking, save methods) skip ho jayenge.
+    // 🔥 100x Optimization: Fetch raw data with lean
     const chats = await Chat.find({ userId: userId })
       .sort({ createdAt: -1 })
       .limit(limitCount)
@@ -51,6 +52,8 @@ async function getConversation(userId, limitCount = 6) {
       .map((chat) => ({
         role: chat.role,
         content: chat.message,
+        // 🟢 FIXED: Database se layout cards/tools ka data bhi frontend ko return karo
+        data: chat.data || null, 
       }));
   } catch (error) {
     throw new Error(`[GetConversation Error]: ${error.message}`);

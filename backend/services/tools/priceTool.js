@@ -1,110 +1,37 @@
+const Interior = require("../../models/InteriorModel");
 
-const Interior =
- require(
-  "../../models/InteriorModel"
-);
+async function priceTool({ category, budget }) {
+  try {
+    const query = {};
+    const cleanCategory = category ? category.trim().toLowerCase() : "";
 
-async function priceTool({
- category,
- budget,
-}) {
+    if (budget > 0) {
+      query.price = { $lte: Number(budget) };
+    }
 
- try {
+    if (cleanCategory) {
+      query.$or = [
+        { category: { $regex: cleanCategory, $options: "i" } },
+        { subcategory: { $regex: cleanCategory, $options: "i" } },
+        { roomType: { $regex: cleanCategory, $options: "i" } },
+        { tags: { $elemMatch: { $regex: cleanCategory, $options: "i" } } },
+        { title: { $regex: cleanCategory, $options: "i" } }
+      ];
+    }
 
-  const query = {};
+    console.log("🛠️ FIXED PRICE QUERY:", JSON.stringify(query, null, 2));
 
-  // budget
-  if (
-   budget > 0
-  ) {
+    const items = await Interior.find(query).sort({ price: 1 }).limit(4);
+    console.log("PRICE ITEMS LOADED:", items.length);
 
-   query.price = {
-    $lte:
-      budget,
-   };
+    return {
+      found: items.length > 0,
+      items,
+    };
+  } catch (error) {
+    console.error("❌ PRICE TOOL ERROR:", error);
+    throw new Error(error.message);
   }
-
-  // category
-  if (
-   category
-  ) {
-
-   const regex =
-    new RegExp(
-      category,
-      "i"
-    );
-
-   query.$or = [
-
-    {
-      category:
-        regex,
-    },
-
-    {
-      subcategory:
-        regex,
-    },
-
-    {
-      roomType:
-        regex,
-    },
-
-    {
-      tags: {
-       $in: [
-        regex,
-       ],
-      },
-    },
-
-    {
-      title: {
-       $regex:
-        regex,
-      },
-    },
-   ];
-  }
-
-  console.log(
-   "PRICE QUERY:",
-   query
-  );
-
-  const items =
-   await Interior.find(
-    query
-   )
-    .sort({
-      price: 1,
-    })
-    .limit(4);
-
-  console.log(
-   "PRICE ITEMS:",
-   items
-  );
-
-  return {
-   found:
-    items.length >
-    0,
-   items,
-  };
-
- } catch (
-  error
- ) {
-
-  throw new Error(
-   error.message
-  );
- }
 }
 
-module.exports =
- priceTool;
-
+module.exports = priceTool;

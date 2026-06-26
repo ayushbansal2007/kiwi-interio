@@ -21,9 +21,10 @@ function clearUserMemory(userId) {
 }
 
 /**
- * Kisi specific user ki history me naya message add karne ke liye (With TTL)
+ * Kisi specific user ki history me naya message add karne ke liye (With TTL & Data Support)
+ * 🟢 FIXED: Added custom data parameter for RAG tools layout caching
  */
-function addMessage(userId, role, content, contextWindow) {
+function addMessage(userId, role, content, contextWindow, data = null) {
   if (!userId) {
     console.error("Error: userId is required.");
     return;
@@ -37,32 +38,33 @@ function addMessage(userId, role, content, contextWindow) {
   const userHistory = usersConversationMap.get(userId);
 
   // 2. Naya chat object push karo
-  userHistory.push({ role, content });
+  // 🟢 FIXED: Ab content ke sath cards aur tools ka structured 'data' bhi RAM me cache hoga
+  userHistory.push({ 
+    role, 
+    content,
+    data: data || null 
+  });
 
   // 3. Token Optimization (Sliding Window)
   if (userHistory.length > contextWindow) {
     const trimmedHistory = userHistory.slice(-contextWindow);
     usersConversationMap.set(userId, trimmedHistory);
   }
-  
 
   // ==========================================
   // ⏳ 🔥 SOLID TTL LOGIC (RAM PROTECTION)
   // ==========================================
   
-  // A. Agar is user ka pehle se koi timer chal raha hai, toh use CANCEL karo
-  // Kyunki user ne abhi-abhi message bheja hai, iska matlab woh abhi active hai!
   if (memoryTimers.has(userId)) {
     clearTimeout(memoryTimers.get(userId));
   }
 
-  // B. Ek naya 15-minute ka timer lagao
+  // Ek naya 30-minute ka timer lagao taaki session lamba aur stable chale
   const inactivityTimeout = setTimeout(() => {
-    console.log(`⏱️ 15 Minutes se user shaant hai. Action: Clear RAM.`);
-    clearUserMemory(userId); // Automatic RAM saaf!
-  }, 15 * 60 * 1000); // 15 Minutes in milliseconds (15 * 60 * 1000)
+    console.log(`⏱️ Inactivity detected. Action: Clear RAM.`);
+    clearUserMemory(userId); 
+  }, 30 * 60 * 1000); // 30 Minutes backup window
 
-  // C. Is naye timer ko map me save kar lo taaki agle message par reset kar sakein
   memoryTimers.set(userId, inactivityTimeout);
 }
 

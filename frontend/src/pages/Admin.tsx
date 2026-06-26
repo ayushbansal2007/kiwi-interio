@@ -11,7 +11,7 @@ interface Interior {
   category: string;
   subcategory: string;
   style: string;
-  tags: string[];
+  tags: string[]; // Strict RAG Matrix Array format
   roomType: string;
   price: number;
 }
@@ -52,7 +52,6 @@ function Admin() {
     finalRole === "hr" ? "queries" : "catalog"
   );
 
-  // ✨ STATE FOR FILTERING CATEGORY
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
   const [availableCategories, setAvailableCategories] = useState<string[]>([
@@ -66,13 +65,19 @@ function Admin() {
       fetch(`${API_BASE_URL}/api/interiors`)
         .then((res) => res.json())
         .then((data: Interior[]) => {
-          setInteriors(data);
-          const dbCategories = data.map(item => item.category).filter(Boolean);
+          // 🟢 FIXED: Backend data parse karte hi tags ko force-insure karo ki vo array ho
+          const normalizedData = data.map(item => ({
+            ...item,
+            tags: Array.isArray(item.tags) ? item.tags : typeof item.tags === "string" ? (item.tags as string).split(",") : []
+          }));
+          
+          setInteriors(normalizedData);
+          const dbCategories = normalizedData.map(item => item.category).filter(Boolean);
           setAvailableCategories(prev => Array.from(new Set([...prev, ...dbCategories])));
         })
         .catch((err) => console.error("Error fetching interiors:", err));
     }
-  }, [finalRole]);
+  }, [finalRole, API_BASE_URL]);
 
   const handleInputChange = (id: string, field: keyof Interior, value: any) => {
     setInteriors((prevInteriors) =>
@@ -97,31 +102,43 @@ function Admin() {
     const token = localStorage.getItem("token");
     setLoadingId(id);
 
+    // 🟢 FIXED: RAG System ke liye data submit karne se pehle trailing commas aur empty arrays completely sanitize karo
+    const sanitizedTags = Array.isArray(updatedItem.tags)
+      ? updatedItem.tags.map(t => t.trim().toLowerCase()).filter(t => t !== "")
+      : [];
+
+    const finalPayload = {
+      ...updatedItem,
+      tags: sanitizedTags // Valid Array sent to Mongoose/RAG Vector DB
+    };
+
     try {
-      const response = await fetch(`${API_BASE_URL}/api/interior/${id}`, {
+      // Endpoint fallback handling (check syntax mismatch if any on api route)
+      const response = await fetch(`${API_BASE_URL}/api/interiors/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: token ? `Bearer ${token}` : "",
         },
-        body: JSON.stringify(updatedItem),
+        body: JSON.stringify(finalPayload),
       });
 
       if (response.ok) {
         setSuccessId(id);
+        // Sync local state safely
+        setInteriors(prev => prev.map(item => item._id === id ? { ...item, tags: sanitizedTags } : item));
         setTimeout(() => setSuccessId(null), 2000);
       } else {
-        alert("Database update failed.");
+        alert("Database update failed. Verify route endpoints.");
       }
     } catch (error) {
       console.error("Update Error:", error);
       alert("Network error.");
     } finally {
-      if (loadingId === id) setLoadingId(null);
+      setLoadingId(null);
     }
   };
 
-  // ✨ FILTER LOGIC FOR CARDS
   const filteredInteriors = selectedCategory === "All"
     ? interiors
     : interiors.filter(item => item.category?.toLowerCase() === selectedCategory.toLowerCase());
@@ -155,7 +172,7 @@ function Admin() {
           </div>
         </header>
 
-        {/* 🛠— NAVIGATION TAB BAR */}
+        {/* NAVIGATION TAB BAR */}
         {finalRole === "admin" && (
           <div className="flex gap-3 mb-6 border-b border-neutral-200 pb-5 overflow-x-auto scaffolding-scroll">
             <button
@@ -186,7 +203,7 @@ function Admin() {
           <QueriesList />
         ) : (
           <>
-            {/* ✨ DYNAMIC CATEGORY FILTER PILLS (NEW) */}
+            {/* DYNAMIC CATEGORY FILTER PILLS */}
             <div className="mb-8 bg-white p-4 rounded-xl border border-neutral-200 shadow-xs">
               <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 mb-3">
                 Quick Category Filter ({filteredInteriors.length} items found)
@@ -225,9 +242,7 @@ function Admin() {
               </div>
             )}
 
-            {/* =============================================================
-                💎 CATALOG CONTROL GRID (RESPONSIVE & LUXE)
-               ============================================================= */}
+            {/* CATALOG CONTROL GRID */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredInteriors.map((item) => (
                 <div key={item._id} className="bg-white rounded-xl border border-neutral-200 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden group">
@@ -334,19 +349,26 @@ function Admin() {
                             value={item.price}
                             className="w-full border border-neutral-200 focus:border-neutral-900 rounded px-3 py-1.5 text-xs font-bold text-neutral-900"
                             onChange={(e) => handleInputChange(item._id, "price", Number(e.target.value))}
-                        />
+                          />
                         </div>
                       </div>
 
-                      {/* Search Tags */}
+                      {/* 🟢 FIXED: SEARCH TAGS WITH ROBUST SAFE IN-LINE STATE HANDLING */}
                       <div>
-                        <label className="text-[10px] font-bold uppercase text-neutral-400 block mb-1 tracking-wider">Tags (Comma Separated)</label>
+                        <label className="text-[10px] font-bold uppercase text-neutral-400 block mb-1 tracking-wider">
+                          Tags (Comma Separated)
+                        </label>
                         <input
                           type="text"
-                          value={item.tags ? item.tags.join(", ") : ""}
-                          className="w-full border border-neutral-200 focus:border-neutral-900 rounded px-3 py-1.5 text-xs font-mono text-neutral-600"
+                          // Fallback arrays completely logic fix
+                          value={Array.isArray(item.tags) ? item.tags.join(", ") : ""}
+                          placeholder="modern, minimal, office"
+                          className="w-full border border-neutral-200 focus:border-neutral-900 rounded px-3 py-1.5 text-xs font-mono text-neutral-800 bg-red-50/20"
                           onChange={(e) => {
-                            const arrayTags = e.target.value.split(",").map(tag => tag.trim());
+                            // Split on comma instantly map values
+                            const stringVal = e.target.value;
+                            const arrayTags = stringVal.split(",").map(tag => tag.trim());
+                            // Temporary tracking framework update
                             handleInputChange(item._id, "tags", arrayTags);
                           }}
                         />

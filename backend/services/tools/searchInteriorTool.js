@@ -1,207 +1,71 @@
+const Interior = require("../../models/InteriorModel");
+const kiwiRagPipeline = require("../../services/ragService"); // 🟢 Local RAG integrated
 
-const Interior =
-  require(
-    "../../models/InteriorModel"
-  );
-
-async function searchInteriorTool({
-  category,
-  budget,
-  style,
-}) {
+async function searchInteriorTool({ category, budget, style }) {
   try {
+    // 🟢 SAFE REGEX LOGIC FIXED (No empty {} outputs)
+    const cleanCategory = category ? category.trim().toLowerCase() : "";
+    const cleanStyle = style ? style.trim().toLowerCase() : "";
 
-    const filters =
-      [];
+    // Agar direct filter lagana hai
+    const filters = [];
 
-    // CATEGORY SEARCH
-    if (category) {
-
-      const cleanCategory =
-        category
-          .trim()
-          .toLowerCase();
-
-      const exactRegex =
-        new RegExp(
-          `^${cleanCategory}$`,
-          "i"
-        );
-
-      const partialRegex =
-        new RegExp(
-          cleanCategory,
-          "i"
-        );
-
+    if (cleanCategory) {
       filters.push({
-
         $or: [
-
-          // exact category
-          {
-            category:
-              exactRegex,
-          },
-
-          // exact subcategory
-          {
-            subcategory:
-              exactRegex,
-          },
-
-          // room type
-          {
-            roomType:
-              exactRegex,
-          },
-
-          // exact tags
-          {
-            tags: {
-              $elemMatch:
-                {
-                  $regex:
-                    exactRegex,
-                },
-            },
-          },
-
-          // title search
-          {
-            title: {
-              $regex:
-                partialRegex,
-            },
-          },
-
-          // description search
-          {
-            description:
-              {
-                $regex:
-                  partialRegex,
-              },
-          },
-        ],
+          { category: { $regex: cleanCategory, $options: "i" } },
+          { subcategory: { $regex: cleanCategory, $options: "i" } },
+          { roomType: { $regex: cleanCategory, $options: "i" } },
+          { tags: { $elemMatch: { $regex: cleanCategory, $options: "i" } } },
+          { title: { $regex: cleanCategory, $options: "i" } },
+          { description: { $regex: cleanCategory, $options: "i" } }
+        ]
       });
     }
 
-    // STYLE SEARCH
-    if (style) {
-
-      const cleanStyle =
-        style
-          .trim()
-          .toLowerCase();
-
-      const styleRegex =
-        new RegExp(
-          cleanStyle,
-          "i"
-        );
-
+    if (cleanStyle) {
       filters.push({
-
         $or: [
-
-          {
-            style:
-              styleRegex,
-          },
-
-          {
-            tags: {
-              $elemMatch:
-                {
-                  $regex:
-                    styleRegex,
-                },
-            },
-          },
-        ],
+          { style: { $regex: cleanStyle, $options: "i" } },
+          { tags: { $elemMatch: { $regex: cleanStyle, $options: "i" } } }
+        ]
       });
     }
 
-    // BUDGET FILTER
-    if (
-      budget &&
-      budget > 0
-    ) {
-
-      filters.push({
-
-        price: {
-          $lte:
-            budget,
-        },
-      });
+    if (budget && budget > 0) {
+      filters.push({ price: { $lte: Number(budget) } });
     }
 
-    // FINAL QUERY
-    const query =
-      filters.length
-        ? {
-            $and:
-              filters,
-          }
-        : {};
+    const query = filters.length ? { $and: filters } : {};
+    console.log("🛠️ FIXED KEYWORD SEARCH QUERY:", JSON.stringify(query, null, 2));
 
-    console.log(
-      "SEARCH QUERY:",
-      JSON.stringify(
-        query,
-        null,
-        2
-      )
-    );
+    // Execute Standard Query
+    let items = await Interior.find(query).sort({ price: 1 }).limit(4);
 
-    const items =
-      await Interior.find(
-        query
-      )
-        .sort({
-          price: 1,
-        })
-        .limit(4);
+    // 🟢 INTELLIGENT RAG FALLBACK (Best Part!)
+    // Agar keyword search se kuch na mile, ya unme bedroom ke badle unrelated decor objects mil rahe hon:
+    if (items.length === 0 || (cleanCategory === "bedroom" && !items.some(i => i.category?.toLowerCase().includes("bedroom")))) {
+      console.log("🔄 Keyword mismatch or irrelevant items! Diverting traffic to Local Vector RAG Pipeline...");
+      
+      const rawBuildString = `${cleanStyle} ${cleanCategory}`.trim();
+      const ragResult = await kiwiRagPipeline(rawBuildString || "bedroom modern design");
+      
+      if (ragResult.dbItems && ragResult.dbItems.length > 0) {
+        // Apply final budget filter to RAG results to ensure client constraints are fully respected
+        items = ragResult.dbItems.filter(item => !budget || item.price <= budget);
+      }
+    }
 
-    console.log(
-      "FOUND ITEMS:",
-      items.map(
-        (item) => ({
-          title:
-            item.title,
-          category:
-            item.category,
-          price:
-            item.price,
-        })
-      )
-    );
+    console.log("🎯 VECTOR SYNCED FOUND ITEMS:", items.map(i => ({ title: i.title, category: i.category, price: i.price })));
 
     return {
-
-      found:
-        items.length >
-        0,
-
+      found: items.length > 0,
       items,
     };
-
-  } catch (
-    error
-  ) {
-
-    console.error(
-      "SEARCH ERROR:",
-      error
-    );
-
-    throw new Error(
-      error.message
-    );
+  } catch (error) {
+    console.error("❌ SEARCH ERROR:", error);
+    throw new Error(error.message);
   }
 }
 
-module.exports =
-  searchInteriorTool;
+module.exports = searchInteriorTool;

@@ -7,6 +7,7 @@ import {
   Phone,
   Trash2,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom"; // 🟢 Added for navigation
 import useDocumentTitle from "../hooks/useDocumentTitle";
 
 function AIAssistant() {
@@ -17,6 +18,7 @@ function AIAssistant() {
   const [userName, setUserName] = useState("User");
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://kiwi-interio.onrender.com";
   
+  const navigate = useNavigate(); // 🟢 Initialized navigate hook
   const messagesEndRef = useRef<any>(null);
   useDocumentTitle("AI Assistant");
 
@@ -60,15 +62,19 @@ function AIAssistant() {
   }, []);
 
   // ==========================================
-  // ⏳ 2. FIXED TYPING EFFECT (SMOOTH & SAFE)
+  // ⏳ 2. FIXED TYPING EFFECT (CRASH-PROOF & CARDS SAFE)
   // ==========================================
   const triggerTypingEffect = (fullText: string, rawAiReply: any) => {
     let index = 0;
     setTypingText("");
 
     const intervalId = setInterval(() => {
-      setTypingText((prev) => prev + fullText[index]);
-      index++;
+      if (fullText && fullText[index]) {
+        setTypingText((prev) => prev + fullText[index]);
+        index++;
+      } else {
+        index = fullText.length;
+      }
 
       if (index >= fullText.length) {
         clearInterval(intervalId);
@@ -77,7 +83,12 @@ function AIAssistant() {
           {
             role: "assistant",
             content: fullText,
-            data: rawAiReply,
+            // 🟢 Structured properly so items never disappear after typing complete
+            data: rawAiReply ? {
+              items: rawAiReply.items || [],
+              tool: rawAiReply.tool || null,
+              data: rawAiReply.data || null
+            } : null,
           },
         ]);
         setTypingText("");
@@ -90,7 +101,7 @@ function AIAssistant() {
   // ==========================================
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading, typingText]); // 👈 Added typingText for active tracking while streaming
+  }, [messages, loading, typingText]);
 
   // 🧹 4. Clear Chat Handler
   const handleClearChat = () => {
@@ -155,7 +166,6 @@ function AIAssistant() {
   };
 
   return (
-    // 🟢 FIXED: h-screen ke sath flex-col ko tightly clamp kiya taaki screen size overflow na ho
     <div className="h-[calc(100vh-60px)] md:h-screen bg-gradient-to-br from-slate-50 via-white to-red-50/50 flex flex-col overflow-hidden">
       
       {/* HEADER */}
@@ -195,7 +205,6 @@ function AIAssistant() {
       </div>
 
       {/* CHAT CONTAINER */}
-      {/* 🟢 FIXED: `pb-24 md:pb-6` diya taaki list ka aakhri message mobile menu bar ke piche na dabe */}
       <div className="flex-1 overflow-y-auto px-4 py-6 pb-24 md:pb-6">
         <div className="max-w-5xl mx-auto space-y-6">
           {messages.length === 0 && !loading && (
@@ -235,7 +244,7 @@ function AIAssistant() {
                     <Bot size={16} />
                   </div>
                   <div className="flex-1 bg-white rounded-[20px] sm:rounded-[26px] p-4 sm:p-5 shadow-sm border border-gray-100 space-y-4 overflow-hidden">
-                    {(msg.content) && (
+                    {msg.content && (
                       <div className="bg-slate-50 border border-slate-100 rounded-[14px] sm:rounded-[18px] p-3 sm:p-4">
                         <p className="text-gray-800 text-xs sm:text-sm leading-relaxed whitespace-pre-line">
                           {msg.content}
@@ -244,10 +253,15 @@ function AIAssistant() {
                     )}
 
                     {/* INTERIOR TOOLS CARDS */}
-                    {msg.data?.items?.length > 0 && (
+                    {msg.data?.items && msg.data.items.length > 0 && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                         {msg.data.items.map((item: any) => (
-                          <div key={item._id} className="group overflow-hidden rounded-[20px] border border-gray-100 bg-white shadow-sm hover:shadow-lg transition-all duration-300">
+                          // 🟢 1. Fixed URL navigation from /interiors/ to /interior/
+                          <div 
+                            key={item._id} 
+                            onClick={() => navigate(`/interior/${item._id}`)}
+                            className="group cursor-pointer overflow-hidden rounded-[20px] border border-gray-100 bg-white shadow-sm hover:shadow-lg transition-all duration-300"
+                          >
                             <div className="relative overflow-hidden aspect-video bg-gray-100">
                               <img src={item.image} alt={item.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
                               <div className="absolute top-2 left-2">
@@ -262,7 +276,9 @@ function AIAssistant() {
                                   <p className="text-[9px] text-gray-400 font-medium">Starting from</p>
                                   <p className="text-red-500 font-extrabold text-base">₹{item.price?.toLocaleString()}</p>
                                 </div>
-                                <button className="bg-gray-900 hover:bg-red-500 text-white text-[10px] px-3 py-1.5 rounded-lg shadow-sm transition-colors duration-200">View Details</button>
+                                <button className="bg-gray-900 group-hover:bg-red-500 text-white text-[10px] px-3 py-1.5 rounded-lg shadow-sm transition-colors duration-200">
+                                  View Details
+                                </button>
                               </div>
                             </div>
                           </div>
@@ -325,7 +341,6 @@ function AIAssistant() {
       </div>
 
       {/* INPUT BAR */}
-      {/* 🟢 FIXED: Mobile view par `bottom-[56px]` push kiya taaki bottom bar ke upar safely sit kare, aur desktop (`md:bottom-0`) par regular stick rahe */}
       <div className="fixed bottom-[58px] md:sticky md:bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-gray-100 p-3 sm:p-4 z-20">
         <div className="max-w-5xl mx-auto flex gap-2 sm:gap-3 items-center">
           <input
