@@ -13,6 +13,7 @@ import Admin from "./pages/Admin";
 import AIAssistant from "./pages/AIAssistant";
 import ContactQuery from "./pages/ContactQuery"; // 👈 Hamara floating code import kiya
 import InteriorDetailPage from "./pages/InteriorDetailPage";
+import Footer from "./components/Footer";
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
               <InteriorList />
               <WhyChooseUs />
               <Testimonials />
+              <Footer/>
             </>
           }
         />
