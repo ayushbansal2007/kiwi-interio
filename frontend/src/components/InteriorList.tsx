@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-// 🟢 FIXED: Type import rules apply kiye aur Router Link ko fetch kiya navigation ke liye
 import type { ReactElement } from "react";
 import { Link } from "react-router-dom";
 import useDocumentTitle from "../hooks/useDocumentTitle";
+
 
 interface Interior {
   _id: string;

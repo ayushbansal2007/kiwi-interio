@@ -13,11 +13,14 @@ interface User {
 
 function Profile() {
   const [user, setUser] = useState<User | null>(null);
-useDocumentTitle("Profile");
+useDocumentTitle("Profile")
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://kiwi-interio.onrender.com";
   useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    fetch("https://kiwi-interio.onrender.com/api/auth/profile", {
+const token = localStorage.getItem("accessToken");
+    fetch(`${API_BASE_URL}/api/auth/profile`, {
+      credentials: "include",
       headers: {
         Authorization: `Bearer ${token}`,
       },

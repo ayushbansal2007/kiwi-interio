@@ -62,26 +62,12 @@ router.post(
         });
 
       // token
-      const token =
-        jwt.sign(
-          {
-            userId:
-              newUser._id,
-            role:
-              newUser.role,
-          },
-          process.env.JWT_SECRET,
-          {
-            expiresIn:
-              "30d",
-          }
-        );
-
+      
       res
         .status(201)
         .json({
           message:
-            "User Registered",
+            "User Registered go to login page ",
           token,
           role:
             newUser.role,
@@ -136,25 +122,36 @@ router.post(
           });
       }
 
-      const token =
-        jwt.sign(
-          {
-            userId:
-              user._id,
-            role:
-              user.role,
-          },
-          process.env.JWT_SECRET,
-          {
-            expiresIn:
-              "30d",
-          }
-        );
+      const accessToken = jwt.sign(
+  {
+    userId: user._id,
+    role: user.role,
+  },
+  process.env.JWT_SECRET,
+  {
+    expiresIn: "15m",
+  }
+);
+const refreshToken = jwt.sign(
+  {
+    userId: user._id,
+  },
+  process.env.REFRESH_TOKEN_SECRET,
+  {
+    expiresIn: "7d",
+  }
+);
+res.cookie("refreshToken", refreshToken, {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "strict",
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+});
 
       res.json({
         message:
           "Login successful",
-        token,
+       accessToken,
         role:
           user.role,
       });
@@ -168,7 +165,50 @@ router.post(
     }
   }
 );
+ router.post("/refresh", async (req, res) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
 
+    if (!refreshToken) {
+      return res.status(401).json({
+        message: "Refresh token not found",
+      });
+    }
+
+    const decoded = jwt.verify(
+      refreshToken,
+      process.env.REFRESH_TOKEN_SECRET
+    );
+
+    const user = await User.findById(decoded.userId);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const accessToken = jwt.sign(
+      {
+        userId: user._id,
+        role: user.role,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "15m",
+      }
+    );
+
+    res.json({
+      accessToken,
+    });
+
+  } catch (error) {
+    res.status(401).json({
+      message: "Invalid refresh token",
+    });
+  }
+});
 // ---------------- PROFILE ----------------
 router.get(
   "/profile",
@@ -193,5 +233,18 @@ router.get(
     }
   }
 );
+
+
+router.post("/logout", (req, res) => {
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+  });
+
+  res.json({
+    message: "Logout successful",
+  });
+});
 
 module.exports = router;

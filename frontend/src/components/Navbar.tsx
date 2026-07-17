@@ -2,13 +2,26 @@ import type { ReactElement } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 export default function Navbar(): ReactElement {
-  const token: string | null = localStorage.getItem("token");
+  const token: string | null = localStorage.getItem("accessToken");
   const location = useLocation();
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://kiwi-interio.onrender.com";
 
-  const handleLogout = (): void => {
-    localStorage.removeItem("token");
-    window.location.reload();
-  };
+  const handleLogout = async (): Promise<void> => {
+  try {
+    await fetch(`${API_BASE_URL}/api/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    });
+
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("role");
+    localStorage.removeItem("email");
+
+    window.location.href = "/login";
+  } catch (error) {
+    console.error(error);
+  }
+};
 
   return (
     <>

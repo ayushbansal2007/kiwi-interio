@@ -8,20 +8,22 @@ const aiRoutes = require("./routes/aiRoutes");
 const morgan = require("morgan")
 const logger = require("./utils/logger")
 const queryRoutes = require("./routes/queryRoutes");
+const cookieParser = require("cookie-parser");
 
 const app = express();
 
-// 🌐 SECURE CORS SETUP FOR VERCEL LIVE LINK
+
 const corsOptions = {
     origin: [
-        "https://kiwi-interio-xi.vercel.app", // Tumhara live frontend link
-        "http://localhost:5173"              // Local testing ke liye Vite ka port
+        "https://kiwi-interio-xi.vercel.app", 
+        "http://localhost:5173"              
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
 };
 
-app.use(cors(corsOptions)); // Default cors() ki jagah ab options pass kar diye
+app.use(cors(corsOptions)); 
+app.use(cookieParser());
 app.use(express.json())
 
 morgan.token("user-role", (req) => {

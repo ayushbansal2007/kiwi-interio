@@ -26,6 +26,7 @@ function Login() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({
           email: email.trim(),
           password,
@@ -34,8 +35,8 @@ function Login() {
 
       const data = await response.json();
 
-      if (data.token) {
-        localStorage.setItem("token", data.token);
+      if (data.accessToken) {
+        localStorage.setItem("accessToken", data.accessToken);
         localStorage.setItem("role", data.role);
         localStorage.setItem("email", email.toLowerCase().trim());
 
