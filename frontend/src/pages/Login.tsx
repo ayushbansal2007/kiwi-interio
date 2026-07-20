@@ -3,6 +3,8 @@ import { useNavigate, Link } from "react-router-dom";
 import { Mail, Lock, ArrowRight, Sparkles } from "lucide-react";
 import WelcomePopup from "../components/WelcomePopup";
 import useDocumentTitle from "../hooks/useDocumentTitle";
+import { loginUser } from "../services/authService";
+import useAuth from "../hooks/useAuth";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -12,51 +14,36 @@ function Login() {
 
   useDocumentTitle("Login | Kiwi Interio");
   const navigate = useNavigate();
-
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://kiwi-interio.onrender.com";
+   const { login } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (loading) return;
-    setLoading(true);
+  e.preventDefault();
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          email: email.trim(),
-          password,
-        }),
-      });
+  if (loading) return;
 
-      const data = await response.json();
+  setLoading(true);
 
-      if (data.accessToken) {
-        localStorage.setItem("accessToken", data.accessToken);
-        localStorage.setItem("role", data.role);
-        localStorage.setItem("email", email.toLowerCase().trim());
+  try {
+    const data = await loginUser(email.trim(), password);
 
-        setShowPopup(true);
+    if (data.accessToken) {
+      login(data.accessToken, data.user);
 
-        setTimeout(() => {
-          navigate("/");
-          window.location.reload();
-        }, 2500);
-      } else {
-        alert(data.message || "Invalid Email or Password");
-      }
-    } catch (error) {
-      console.log("Fetch Error: ", error);
-      alert("Something went wrong. Please check your connection.");
-    } finally {
-      setLoading(false);
+      setShowPopup(true);
+
+      setTimeout(() => {
+        navigate("/");
+      }, 2500);
+    } else {
+      alert(data.message || "Invalid Email or Password");
     }
-  };
-
+  } catch (error) {
+    console.log(error);
+    alert("Something went wrong.");
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     // 🟢 FIXED: Mobile viewport height clamp kiya aur automatic alignment handle ki taaki keyboard layout collapse na kare
     <div className="min-h-[calc(100vh-60px)] md:min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-red-50/60 px-4 sm:px-6 py-8 relative overflow-hidden">

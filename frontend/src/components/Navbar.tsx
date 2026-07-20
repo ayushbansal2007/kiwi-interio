@@ -1,28 +1,21 @@
 import type { ReactElement } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import useAuth from "../hooks/useAuth";
 
 export default function Navbar(): ReactElement {
-  const token: string | null = localStorage.getItem("accessToken");
   const location = useLocation();
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://kiwi-interio.onrender.com";
+const navigate = useNavigate();
 
-  const handleLogout = async (): Promise<void> => {
+const { user, logout } = useAuth();
+
+const handleLogout = async () => {
   try {
-    await fetch(`${API_BASE_URL}/api/auth/logout`, {
-      method: "POST",
-      credentials: "include",
-    });
-
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("role");
-    localStorage.removeItem("email");
-
-    window.location.href = "/login";
+    await logout();
+    navigate("/login");
   } catch (error) {
     console.error(error);
   }
 };
-
   return (
     <>
       {/* ==========================================
@@ -59,7 +52,7 @@ export default function Navbar(): ReactElement {
           </div>
 
           <div className="hidden md:flex items-center gap-4">
-            {!token ? (
+            {!user ? (
               <>
                 <Link to="/login" className="text-gray-600 font-medium hover:text-red-500 transition">
                   Login
@@ -73,9 +66,14 @@ export default function Navbar(): ReactElement {
                 <Link to="/profile" className="text-gray-600 font-medium hover:text-red-500 transition">
                   Profile
                 </Link>
-                <Link to="/admin" className="text-gray-600 font-medium hover:text-red-500 transition">
-                  Admin
-                </Link>
+               {user?.role === "admin" && (
+  <Link
+    to="/admin"
+    className="text-gray-600 font-medium hover:text-red-500 transition"
+  >
+    Admin
+  </Link>
+)}
                 <button onClick={handleLogout} className="bg-gray-900 hover:bg-red-600 text-white px-5 py-2.5 rounded-full font-semibold shadow-sm transition duration-200">
                   Logout
                 </button>
@@ -108,7 +106,7 @@ export default function Navbar(): ReactElement {
         </Link>
 
         {/* 🟢 FIXED: Jab token nahi hai, toh dono explicit Login aur Register buttons dikhein alag-alag */}
-        {!token ? (
+        {!user ? (
           <>
             <Link 
               to="/login" 
@@ -129,10 +127,19 @@ export default function Navbar(): ReactElement {
         ) : (
           // 🟢 FIXED: Jab token mil jaye (Logged in), toh Admin aur Logout handles dikhein
           <>
-            <Link to="/admin" className={`flex flex-col items-center gap-1 py-1 px-2 transition ${location.pathname === "/admin" || location.pathname === "/profile" ? "text-red-500 font-bold bg-red-50" : ""}`}>
-              <span className="text-lg">⚙️</span>
-              <span>Admin</span>
-            </Link>
+            {user?.role === "admin" && (
+  <Link
+    to="/admin"
+    className={`flex flex-col items-center gap-1 py-1 px-2 transition ${
+      location.pathname === "/admin"
+        ? "text-red-500 font-bold bg-red-50"
+        : ""
+    }`}
+  >
+    <span className="text-lg">⚙️</span>
+    <span>Admin</span>
+  </Link>
+)}
             
             <button onClick={handleLogout} className="flex flex-col items-center gap-1 py-1 px-2 text-gray-400 hover:text-red-600">
               <span className="text-lg">🚪</span>

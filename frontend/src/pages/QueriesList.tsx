@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 // 📊 CHART.JS IMPORTS
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { Doughnut } from "react-chartjs-2";
+import { apiClient } from "../services/apiClient";
 
 // Register ChartJS modules safely
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -25,7 +26,7 @@ function QueriesList() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    fetch(`${API_BASE_URL}/api/queries/all`, {
+    apiClient(`${API_BASE_URL}/api/queries/all`, {
       headers: {
         Authorization: token ? `Bearer ${token}` : "",
       },

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 import QueriesList from "./QueriesList"; 
+import useAuth from "../hooks/useAuth";
+import { apiClient } from "../services/apiClient";
 
 interface Interior {
   _id: string;
@@ -17,132 +19,168 @@ interface Interior {
 }
 
 function Admin() {
-  const storedRole = localStorage.getItem("role")?.toLowerCase(); 
-  const userEmail = localStorage.getItem("email")?.toLowerCase() || "";
+ const { user, accessToken } = useAuth();
 
-  let finalRole = storedRole;
+const finalRole = user?.role?.toLowerCase() || "";
+const userEmail = user?.email?.toLowerCase() || "";
 
-  if (userEmail === "hr@kiwiinterio.com") {
-    finalRole = "hr";
-  } else if (userEmail === "admin@kiwiinterio.com") {
-    finalRole = "admin";
-  } else if (userEmail === "manager@kiwiinterio.com") {
-    finalRole = "manager";
+const hasAccess =
+  finalRole === "admin" ||
+  finalRole === "hr" ||
+  finalRole === "manager";
+
+if (!hasAccess) {
+  return <Navigate to="/" />;
+}
+
+useDocumentTitle(
+  finalRole === "admin"
+    ? "God Mode | Control Panel"
+    : finalRole === "hr"
+    ? "HR Matrix | Client Queries"
+    : "Manager Panel | Kiwi Interio"
+);
+
+const [interiors, setInteriors] = useState<Interior[]>([]);
+const [loadingId, setLoadingId] = useState<string | null>(null);
+const [successId, setSuccessId] = useState<string | null>(null);
+
+const [currentView, setCurrentView] = useState<"catalog" | "queries">(
+  finalRole === "hr" ? "queries" : "catalog"
+);
+
+const [selectedCategory, setSelectedCategory] = useState<string>("All");
+
+const [availableCategories, setAvailableCategories] = useState<string[]>([
+  "Living Room",
+  "Kitchen",
+  "Bedroom",
+  "Bathroom",
+  "Office",
+  "Dining Room",
+]);
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://kiwi-interio.onrender.com";
+
+useEffect(() => {
+  if (finalRole === "admin" || finalRole === "manager") {
+    apiClient(`${API_BASE_URL}/api/interiors`)
+      .then((res) => res.json())
+      .then((data: Interior[]) => {
+        const normalizedData = data.map((item) => ({
+          ...item,
+          tags: Array.isArray(item.tags)
+            ? item.tags
+            : typeof item.tags === "string"
+            ? item.tags.split(",")
+            : [],
+        }));
+
+        setInteriors(normalizedData);
+
+        const dbCategories = normalizedData
+          .map((item) => item.category)
+          .filter(Boolean);
+
+        setAvailableCategories((prev) =>
+          Array.from(new Set([...prev, ...dbCategories]))
+        );
+      })
+      .catch((err) => console.error("Error fetching interiors:", err));
   }
+}, [finalRole, API_BASE_URL]);
 
-  const hasAccess = finalRole === "admin" || finalRole === "hr" || finalRole === "manager";
-
-  if (!hasAccess) {
-    return <Navigate to="/" />;
-  }
-
-  useDocumentTitle(
-    finalRole === "admin" 
-      ? "God Mode | Control Panel" 
-      : finalRole === "hr" 
-      ? "HR Matrix | Client Queries" 
-      : "Manager Panel | Kiwi Interio"
+const handleInputChange = (
+  id: string,
+  field: keyof Interior,
+  value: any
+) => {
+  setInteriors((prevInteriors) =>
+    prevInteriors.map((item) =>
+      item._id === id ? { ...item, [field]: value } : item
+    )
   );
+};
 
-  const [interiors, setInteriors] = useState<Interior[]>([]);
-  const [loadingId, setLoadingId] = useState<string | null>(null);
-  const [successId, setSuccessId] = useState<string | null>(null);
+const handleAddNewCategory = (id: string) => {
+  const newCat = prompt("Enter new Category Name:");
 
-  const [currentView, setCurrentView] = useState<"catalog" | "queries">(
-    finalRole === "hr" ? "queries" : "catalog"
-  );
+  if (newCat && newCat.trim() !== "") {
+    const cleanCat = newCat.trim();
 
-  const [selectedCategory, setSelectedCategory] = useState<string>("All");
-
-  const [availableCategories, setAvailableCategories] = useState<string[]>([
-    "Living Room", "Kitchen", "Bedroom", "Bathroom", "Office", "Dining Room"
-  ]);
-
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://kiwi-interio.onrender.com";
-
-  useEffect(() => {
-    if (finalRole === "admin" || finalRole === "manager") {
-      fetch(`${API_BASE_URL}/api/interiors`)
-        .then((res) => res.json())
-        .then((data: Interior[]) => {
-          // 🟢 FIXED: Backend data parse karte hi tags ko force-insure karo ki vo array ho
-          const normalizedData = data.map(item => ({
-            ...item,
-            tags: Array.isArray(item.tags) ? item.tags : typeof item.tags === "string" ? (item.tags as string).split(",") : []
-          }));
-          
-          setInteriors(normalizedData);
-          const dbCategories = normalizedData.map(item => item.category).filter(Boolean);
-          setAvailableCategories(prev => Array.from(new Set([...prev, ...dbCategories])));
-        })
-        .catch((err) => console.error("Error fetching interiors:", err));
+    if (!availableCategories.includes(cleanCat)) {
+      setAvailableCategories((prev) => [...prev, cleanCat]);
     }
-  }, [finalRole, API_BASE_URL]);
 
-  const handleInputChange = (id: string, field: keyof Interior, value: any) => {
-    setInteriors((prevInteriors) =>
-      prevInteriors.map((item) =>
-        item._id === id ? { ...item, [field]: value } : item
-      )
-    );
+    handleInputChange(id, "category", cleanCat);
+  }
+};
+
+const handleUpdate = async (
+  id: string,
+  updatedItem: Interior
+) => {
+  setLoadingId(id);
+
+  const sanitizedTags = Array.isArray(updatedItem.tags)
+    ? updatedItem.tags
+        .map((t) => t.trim().toLowerCase())
+        .filter((t) => t !== "")
+    : [];
+
+  const finalPayload = {
+    ...updatedItem,
+    tags: sanitizedTags,
   };
 
-  const handleAddNewCategory = (id: string) => {
-    const newCat = prompt("Enter new Category Name:");
-    if (newCat && newCat.trim() !== "") {
-      const cleanCat = newCat.trim();
-      if (!availableCategories.includes(cleanCat)) {
-        setAvailableCategories(prev => [...prev, cleanCat]);
-      }
-      handleInputChange(id, "category", cleanCat);
-    }
-  };
-
-  const handleUpdate = async (id: string, updatedItem: Interior) => {
-    const token = localStorage.getItem("token");
-    setLoadingId(id);
-
-    // 🟢 FIXED: RAG System ke liye data submit karne se pehle trailing commas aur empty arrays completely sanitize karo
-    const sanitizedTags = Array.isArray(updatedItem.tags)
-      ? updatedItem.tags.map(t => t.trim().toLowerCase()).filter(t => t !== "")
-      : [];
-
-    const finalPayload = {
-      ...updatedItem,
-      tags: sanitizedTags // Valid Array sent to Mongoose/RAG Vector DB
-    };
-
-    try {
-      // Endpoint fallback handling (check syntax mismatch if any on api route)
-      const response = await fetch(`${API_BASE_URL}/api/interiors/${id}`, {
+  try {
+    const response = await apiClient(
+      `${API_BASE_URL}/api/interiors/${id}`,
+      {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: token ? `Bearer ${token}` : "",
+          Authorization: accessToken
+            ? `Bearer ${accessToken}`
+            : "",
         },
         body: JSON.stringify(finalPayload),
-      });
-
-      if (response.ok) {
-        setSuccessId(id);
-        // Sync local state safely
-        setInteriors(prev => prev.map(item => item._id === id ? { ...item, tags: sanitizedTags } : item));
-        setTimeout(() => setSuccessId(null), 2000);
-      } else {
-        alert("Database update failed. Verify route endpoints.");
       }
-    } catch (error) {
-      console.error("Update Error:", error);
-      alert("Network error.");
-    } finally {
-      setLoadingId(null);
+    );
+
+    if (response.ok) {
+      setSuccessId(id);
+
+      setInteriors((prev) =>
+        prev.map((item) =>
+          item._id === id
+            ? { ...item, tags: sanitizedTags }
+            : item
+        )
+      );
+
+      setTimeout(() => setSuccessId(null), 2000);
+    } else {
+      alert("Database update failed.");
     }
-  };
+  } catch (error) {
+    console.error("Update Error:", error);
+    alert("Network error.");
+  } finally {
+    setLoadingId(null);
+  }
+};
 
-  const filteredInteriors = selectedCategory === "All"
+const filteredInteriors =
+  selectedCategory === "All"
     ? interiors
-    : interiors.filter(item => item.category?.toLowerCase() === selectedCategory.toLowerCase());
-
+    : interiors.filter(
+        (item) =>
+          item.category?.toLowerCase() ===
+          selectedCategory.toLowerCase()
+      );
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-900 py-12 px-4 sm:px-6 lg:px-8 font-sans antialiased">
       <div className="max-w-7xl mx-auto">

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ReactElement } from "react";
 import { Link } from "react-router-dom";
 import useDocumentTitle from "../hooks/useDocumentTitle";
+import { apiClient } from "../services/apiClient";
 
 
 interface Interior {
@@ -28,7 +29,7 @@ function InteriorList(): ReactElement {
   useEffect(() => {
     const fetchInteriors = async () => {
       try {
-        const res = await fetch("https://kiwi-interio.onrender.com/api/interiors");
+        const res = await apiClient("https://kiwi-interio.onrender.com/api/interiors");
         const data = await res.json();
         setInteriors(data);
       } catch (error) {

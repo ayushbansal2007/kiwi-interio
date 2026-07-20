@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import useDocumentTitle from "../hooks/useDocumentTitle";
-
-
+import useAuth from "../hooks/useAuth";
 
 interface User {
   name: string;
@@ -12,29 +11,42 @@ interface User {
 }
 
 function Profile() {
+  useDocumentTitle("Profile");
+
+  const { accessToken } = useAuth();
+
+  const API_BASE_URL =
+    import.meta.env.VITE_API_BASE_URL ||
+    "https://kiwi-interio.onrender.com";
+
   const [user, setUser] = useState<User | null>(null);
-useDocumentTitle("Profile")
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  "https://kiwi-interio.onrender.com";
+
   useEffect(() => {
-const token = localStorage.getItem("accessToken");
+    if (!accessToken) return;
+
     fetch(`${API_BASE_URL}/api/auth/profile`, {
       credentials: "include",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to fetch profile");
+        }
+        return res.json();
+      })
       .then((data) => {
         setUser(data);
+      })
+      .catch((err) => {
+        console.error(err);
       });
-  }, []);
+  }, [accessToken, API_BASE_URL]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-100 flex items-center justify-center px-6 py-16">
       <div className="bg-white shadow-2xl rounded-[40px] overflow-hidden w-full max-w-5xl grid md:grid-cols-2">
-
         {/* Left Side */}
         <div className="bg-red-500 text-white p-10 flex flex-col justify-center items-center relative">
           <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
@@ -50,7 +62,8 @@ const token = localStorage.getItem("accessToken");
           </h2>
 
           <p className="mt-4 text-center leading-7 text-red-100 max-w-sm z-10">
-            Your personal profile dashboard for managing your Kiwi Interiors experience in Bewari.
+            Your personal profile dashboard for managing your Kiwi Interiors
+            experience.
           </p>
         </div>
 
@@ -68,43 +81,29 @@ const token = localStorage.getItem("accessToken");
 
           {user ? (
             <div className="space-y-8">
-              {/* Name */}
               <div className="bg-red-50 rounded-2xl p-5">
-                <p className="text-gray-500 text-sm mb-1">
-                  Full Name
-                </p>
-
+                <p className="text-gray-500 text-sm mb-1">Full Name</p>
                 <h2 className="text-2xl font-semibold text-black">
                   {user.name}
                 </h2>
               </div>
 
-              {/* Email */}
               <div className="bg-red-50 rounded-2xl p-5">
-                <p className="text-gray-500 text-sm mb-1">
-                  Email Address
-                </p>
-
+                <p className="text-gray-500 text-sm mb-1">Email Address</p>
                 <h2 className="text-2xl font-semibold text-black">
                   {user.email}
                 </h2>
               </div>
 
-              {/* Phone */}
               <div className="bg-red-50 rounded-2xl p-5">
-                <p className="text-gray-500 text-sm mb-1">
-                  Phone Number
-                </p>
-
+                <p className="text-gray-500 text-sm mb-1">Phone Number</p>
                 <h2 className="text-2xl font-semibold text-black">
                   {user.number}
                 </h2>
               </div>
             </div>
           ) : (
-            <p className="text-gray-500">
-              Loading profile...
-            </p>
+            <p className="text-gray-500">Loading profile...</p>
           )}
         </div>
       </div>

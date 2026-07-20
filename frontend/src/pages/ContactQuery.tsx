@@ -1,5 +1,6 @@
 import { useState } from "react";
 import useDocumentTitle from "../hooks/useDocumentTitle";
+import { apiClient } from "../services/apiClient";
 
 function ContactQuery() {
   useDocumentTitle("Get In Touch | Kiwi Interio");
@@ -19,7 +20,7 @@ function ContactQuery() {
     loading || setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/queries/submit`, {
+      const response = await apiClient(`${API_BASE_URL}/api/queries/submit`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
