@@ -8,10 +8,12 @@ const User =
  require("../models/userModel");
 const authMiddleware =
   require("../middleware/authMiddleware");
+  const { loginLimiter, registerLimiter } = require("../middleware/rateLimiter");
 
 // ---------------- REGISTER ----------------
 router.post(
   "/register",
+  registerLimiter,
   async (req, res) => {
     try {
       const {
@@ -86,6 +88,7 @@ router.post(
 // ---------------- LOGIN ----------------
 router.post(
   "/login",
+  loginLimiter,
   async (req, res) => {
     try {
       const {
