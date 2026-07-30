@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactElement } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowRight, ShoppingBag } from "lucide-react";
 import useDocumentTitle from "../hooks/useDocumentTitle";
+import useAuth from "../hooks/useAuth";
 import { apiClient } from "../services/apiClient";
-
+import { addToCart } from "../services/commerceService";
 
 interface Interior {
   _id: string;
@@ -19,76 +21,90 @@ interface Interior {
 }
 
 function InteriorList(): ReactElement {
-  useDocumentTitle("The Masterpiece Collection | Kiwi Interio");
-    
+  useDocumentTitle("Collections | Kiwi Interio");
+
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [interiors, setInteriors] = useState<Interior[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [visibleCount, setVisibleCount] = useState(8);
   const [loading, setLoading] = useState(true);
+  const [actionId, setActionId] = useState<string | null>(null);
+  const [notice, setNotice] = useState("");
+
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://kiwi-interio.onrender.com";
 
   useEffect(() => {
     const fetchInteriors = async () => {
       try {
-        const res = await apiClient("https://kiwi-interio.onrender.com/api/interiors");
+        const res = await apiClient(`${API_BASE_URL}/api/interiors`);
         const data = await res.json();
         setInteriors(data);
       } catch (error) {
         console.log(error);
       } finally {
-       // direct tracking state mutation
         setLoading(false);
       }
     };
-    fetchInteriors();
-  }, []);
+    void fetchInteriors();
+  }, [API_BASE_URL]);
 
-  const categories = useMemo(() => [
-    "All",
-    ...new Set(interiors.map((item) => item.category)),
-  ], [interiors]);
+  const categories = useMemo(() => ["All", ...new Set(interiors.map((item) => item.category))], [interiors]);
 
-  const filteredInteriors = useMemo(() =>
-    selectedCategory === "All"
-      ? interiors
-      : interiors.filter((item) => item.category === selectedCategory),
+  const filteredInteriors = useMemo(
+    () => (selectedCategory === "All" ? interiors : interiors.filter((item) => item.category === selectedCategory)),
     [interiors, selectedCategory]
   );
 
   const visibleInteriors = filteredInteriors.slice(0, visibleCount);
 
-  return (
-    <section className="bg-white text-black py-24 px-6 lg:px-16 min-h-screen">
-      <div className="max-w-7xl mx-auto">
+  const handleAddToCart = async (id: string) => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
 
-        {/* 1. Dynamic Editorial Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between border-b border-black pb-8 mb-16">
-          <div className="space-y-4">
-            <p className="text-xs font-bold tracking-[0.3em] uppercase text-red-600">
-              © Kiwi Interio Studio
-            </p>
-            <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-none">
-              Selected <br />
-              <span className="text-red-600">Archived</span> Works
+    setActionId(id);
+    setNotice("");
+    try {
+      const payload = await addToCart(id, 1);
+      if (!payload.success) throw new Error(payload.message || "Could not add to cart");
+      window.dispatchEvent(new Event("cart-updated"));
+      setNotice("Design added to cart");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not add to cart");
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  return (
+    <section className="bg-[#fffcf8] px-4 py-20 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-red-600">Curated catalogue</p>
+            <h2 className="mt-3 text-4xl font-black tracking-[-0.07em] text-neutral-950 sm:text-5xl">
+              Browse interiors the way you’d shop premium products.
             </h2>
           </div>
-          <p className="text-stone-500 text-sm max-w-xs mt-6 md:mt-0 font-light tracking-wide leading-relaxed">
-            A meticulous curation of ultra-premium living concepts designed exclusively for elite properties.
+          <p className="max-w-xl text-sm leading-7 text-neutral-500">
+            Explore styled spaces, compare categories and move your favorite concepts into cart with a single click.
           </p>
         </div>
 
-        {/* 2. Sleek Minimal Navigation Bar */}
-        <div className="flex flex-wrap gap-x-8 gap-y-4 border-b border-stone-100 pb-6 mb-12">
-          {categories.map((category, index) => (
+        <div className="mt-10 flex flex-wrap gap-3">
+          {categories.map((category) => (
             <button
-              key={index}
+              key={category}
               onClick={() => {
                 setSelectedCategory(category);
                 setVisibleCount(8);
               }}
-              className={`text-xs font-bold uppercase tracking-[0.2em] transition-all duration-300 relative pb-2 ${
+              className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] transition ${
                 selectedCategory === category
-                  ? "text-black after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-red-600"
-                  : "text-stone-400 hover:text-red-600"
+                  ? "bg-neutral-950 text-white shadow-lg shadow-neutral-950/10"
+                  : "bg-white text-neutral-500 ring-1 ring-neutral-200 hover:text-neutral-950"
               }`}
             >
               {category}
@@ -96,111 +112,68 @@ function InteriorList(): ReactElement {
           ))}
         </div>
 
-        {/* 3. Skeleton Loader */}
+        {notice && <p className="mt-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{notice}</p>}
+
         {loading ? (
-          <div className="grid lg:grid-cols-4 md:grid-cols-2 gap-x-6 gap-y-12">
+          <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             {Array.from({ length: 8 }).map((_, index) => (
-              <div key={index} className="space-y-4 animate-pulse">
-                <div className="h-[400px] bg-stone-100" />
-                <div className="w-1/4 h-3 bg-stone-100" />
-                <div className="w-3/4 h-5 bg-stone-100" />
+              <div key={index} className="animate-pulse rounded-[30px] bg-white p-3 shadow-sm">
+                <div className="aspect-[4/5] rounded-[24px] bg-neutral-100" />
+                <div className="mt-4 h-3 w-24 rounded bg-neutral-100" />
+                <div className="mt-3 h-6 w-3/4 rounded bg-neutral-100" />
+                <div className="mt-4 h-10 rounded-full bg-neutral-100" />
               </div>
             ))}
           </div>
         ) : (
           <>
-            {/* 4. The 10x Thin High-End Luxury eCommerce Grid */}
-            <div className="grid lg:grid-cols-4 md:grid-cols-2 gap-x-6 gap-y-16">
+            <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
               {visibleInteriors.map((item) => (
-                <div
-                  key={item._id}
-                  className="group relative flex flex-col justify-between bg-white border border-stone-100 p-3 hover:shadow-xl transition-all duration-500"
-                >
-                  {/* Image Framework with Router Link binding */}
-                  <div className="relative overflow-hidden aspect-[3/4] bg-stone-50 border border-stone-100 shadow-sm">
-                    <img
-                      src={item.image}
-                      alt={item.title}
-                      loading="eager"
-                      className="w-full h-full object-cover grayscale-[30%] group-hover:grayscale-0 scale-100 group-hover:scale-105 transition-all duration-700 ease-out"
-                    />
-
-                    {/* eCommerce Status Tags */}
-                    <div className="absolute top-4 left-4 flex flex-col gap-1.5 items-start">
-                      <div className="bg-black text-white px-3 py-1 text-[9px] font-black uppercase tracking-widest border border-stone-800">
-                        {item.style}
-                      </div>
-                      <div className="bg-red-600 text-white px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest">
-                        PREMIUM BUILD
-                      </div>
+                <article key={item._id} className="group overflow-hidden rounded-[30px] border border-neutral-200/70 bg-white p-3 shadow-[0_16px_40px_-32px_rgba(0,0,0,0.45)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_26px_60px_-34px_rgba(0,0,0,0.38)]">
+                  <div className="relative overflow-hidden rounded-[24px] bg-neutral-100">
+                    <img src={item.image} alt={item.title} className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-105" />
+                    <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+                      <span className="rounded-full bg-white/95 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-red-600">{item.category}</span>
+                      {item.style && <span className="rounded-full bg-neutral-950/85 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white">{item.style}</span>}
                     </div>
+                  </div>
 
-                    {/* 🎯 ECOMMERCE DYNAMIC LINK OVERLAY */}
-                    <Link 
-                      to={`/interior/${item._id}`}
-                      className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-4 gap-3"
-                    >
-                      {/* Interactive View Details Button */}
-                      <div className="w-full max-w-[200px] bg-white text-black py-3.5 px-4 flex items-center justify-between shadow-2xl border border-stone-200 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500 ease-out">
-                        <span className="text-[10px] font-black tracking-widest uppercase">QUICK DETAILS</span>
-                        <span className="text-sm font-light">→</span>
-                      </div>
+                  <div className="px-1 pb-1 pt-5">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">{item.roomType || item.subcategory || "Interior concept"}</p>
+                    <Link to={`/interior/${item._id}`} className="mt-2 block text-xl font-black tracking-[-0.04em] text-neutral-950 transition hover:text-red-600">
+                      {item.title}
                     </Link>
-                  </div>
+                    <p className="mt-2 line-clamp-2 text-sm leading-6 text-neutral-500">{item.description}</p>
 
-                  {/* High Contrast Clean Typography Block */}
-                  <div className="pt-4 space-y-2 flex-grow flex flex-col justify-between">
-                    <div>
-                      {/* Category Location Path */}
-                      <p className="text-[10px] font-bold tracking-[0.25em] text-red-600 uppercase">
-                        {item.category} <span className="text-stone-300 font-normal mx-1">/</span> {item.subcategory}
-                      </p>
-
-                      {/* Display Header Title linked to product description */}
-                      <Link to={`/interior/${item._id}`}>
-                        <h3 className="text-md font-black text-black uppercase tracking-tight mt-1 hover:text-red-600 transition-colors duration-300">
-                          {item.title}
-                        </h3>
-                      </Link>
-
-                      <p className="text-stone-500 text-xs font-light leading-relaxed mt-1 line-clamp-2">
-                        {item.description}
-                      </p>
-                    </div>
-
-                    {/* eCommerce Operational Data Injections */}
-                    <div className="space-y-3 pt-3 mt-2 border-t border-stone-100">
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">
-                          ESTIMATED VALUE
-                        </span>
-                        <span className="text-lg font-black text-black tracking-tight">
-                          ₹{item.price.toLocaleString("en-IN")}
-                        </span>
+                    <div className="mt-5 flex items-end justify-between">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">Starting price</p>
+                        <p className="mt-1 text-2xl font-black tracking-[-0.05em] text-neutral-950">₹{item.price.toLocaleString("en-IN")}</p>
                       </div>
-
-                      {/* 🛍️ BUY NOW / BOOK CONSULTATION ECOMMERCE CTA BUTTON */}
-                      <Link 
-                        to={`/interior/${item._id}`} 
-                        className="block w-full text-center bg-black hover:bg-red-600 text-white text-[10px] font-bold uppercase tracking-widest py-3.5 transition-colors duration-300"
-                      >
-                        BUY NOW & CUSTOMIZE
+                      <Link to={`/interior/${item._id}`} className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-red-600">
+                        View
+                        <ArrowRight size={14} />
                       </Link>
                     </div>
-                  </div>
 
-                </div>
+                    <div className="mt-5 grid grid-cols-2 gap-3">
+                      <button onClick={() => handleAddToCart(item._id)} disabled={actionId === item._id} className="inline-flex items-center justify-center gap-2 rounded-full border border-neutral-200 px-4 py-3 text-xs font-bold uppercase tracking-wider text-neutral-800 transition hover:border-red-200 hover:text-red-600 disabled:opacity-50">
+                        <ShoppingBag size={14} />
+                        {actionId === item._id ? "Adding..." : "Add to cart"}
+                      </button>
+                      <button onClick={() => navigate(`/checkout?source=buy_now&id=${item._id}&quantity=1`)} className="rounded-full bg-neutral-950 px-4 py-3 text-xs font-bold uppercase tracking-wider text-white transition hover:bg-red-600">
+                        Buy now
+                      </button>
+                    </div>
+                  </div>
+                </article>
               ))}
             </div>
 
-            {/* 5. Minimalist Load More Action */}
             {visibleCount < filteredInteriors.length && (
-              <div className="flex justify-center mt-24">
-                <button
-                  onClick={() => setVisibleCount((prev) => prev + 8)}
-                  className="bg-black text-white hover:bg-red-600 text-xs font-bold uppercase tracking-[0.2em] px-14 py-5 transition-colors duration-300 shadow-xl"
-                >
-                  Load More Collections
+              <div className="mt-14 flex justify-center">
+                <button onClick={() => setVisibleCount((prev) => prev + 8)} className="rounded-full bg-white px-6 py-3 text-sm font-bold text-neutral-900 ring-1 ring-neutral-200 transition hover:bg-neutral-950 hover:text-white">
+                  Load more concepts
                 </button>
               </div>
             )}

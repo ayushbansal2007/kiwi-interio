@@ -8,6 +8,9 @@ const aiRoutes = require("./routes/aiRoutes");
 const morgan = require("morgan")
 const logger = require("./utils/logger")
 const queryRoutes = require("./routes/queryRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+const cartRoutes = require("./routes/cartRoutes");
+const orderRoutes = require("./routes/orderRoutes");
 const cookieParser = require("cookie-parser");
 
 const app = express();
@@ -18,7 +21,7 @@ const corsOptions = {
         "https://kiwi-interio-xi.vercel.app", 
         "http://localhost:5173"              
     ],
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true
 };
 
@@ -51,6 +54,9 @@ app.use("/api/auth", authRoutes)
 app.use("/api/login", authRoutes)
 app.use("/api", aiRoutes);
 app.use("/api/queries", queryRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/cart", cartRoutes);
+app.use("/api/orders", orderRoutes);
 connectDB();
 
 app.get("/", (req, res) => {

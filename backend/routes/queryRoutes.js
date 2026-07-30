@@ -1,6 +1,8 @@
 const express = require("express"); // 👈 Isko 'express' kar do bhai!
 const router = express.Router();
 const Query = require("../models/Query");
+const authMiddleware = require("../middleware/authMiddleware");
+const roleMiddleware = require("../middleware/roleMiddleware");
 const { Resend } = require("resend"); // 👈 Nodemailer ki jagah Resend Import kiya
 
 // 🚀 INITIALIZE RESEND ENGINE WITH SECURE ENV KEY
@@ -81,7 +83,7 @@ router.post("/submit", async (req, res) => {
 /* =========================================================================
     🔴 PROTECTED ROUTE 1: Get All Queries
    ========================================================================= */
-router.get("/all", async (req, res) => {
+router.get("/all", authMiddleware, roleMiddleware("admin", "hr", "manager"), async (req, res) => {
   try {
     const queries = await Query.find().sort({ createdAt: -1 });
     res.status(200).json({ success: true, data: queries });
@@ -93,7 +95,7 @@ router.get("/all", async (req, res) => {
 /* =========================================================================
     🟢 DEV ROUTE: Update/Delete Status Logic (With Resend Resolution Email)
    ========================================================================= */
-router.post("/update-status/:id", async (req, res) => {
+router.post("/update-status/:id", authMiddleware, roleMiddleware("admin", "hr", "manager"), async (req, res) => {
   try {
     const { status } = req.body;
 

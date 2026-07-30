@@ -1,86 +1,55 @@
 import type { ReactElement } from "react";
 
-// 🛡️ TYPE INTERFACE FOR REVIEWS
-interface ReviewItem {
-  name: string;
-  city: string;
-  review: string;
-}
-
-const reviews: ReviewItem[] = [
+const reviews = [
   {
     name: "Rahul Sharma",
-    city: "Bhiwani", // 👈 Agar ye Haryana ka area hai toh perfect, standard nomenclature
-    review:
-      "Kiwi Interiors completely changed our living room. The design feels modern, spacious, and extremely premium.",
+    city: "Bhiwani",
+    review: "Catalog dekhna aur phir direct design book karna ab kaafi premium lagta hai. It finally feels like a modern interior brand.",
   },
   {
     name: "Priya Verma",
-    city: "Bhiwani",
-    review:
-      "Very smooth experience from planning to execution. Loved their material quality and interior styling.",
+    city: "Hisar",
+    review: "The AI suggestions plus polished checkout flow made the whole journey far more trustworthy than a normal enquiry form.",
   },
   {
     name: "Amit Yadav",
-    city: "Bhiwani",
-    review:
-      "Affordable pricing and beautiful interior ideas. Highly recommended studio for workspace and home designs.",
+    city: "Rohtak",
+    review: "Profile page mein cart aur order history dekhna very helpful hai. Team experience ab fully organized lagta hai.",
   },
 ];
 
 function Testimonials(): ReactElement {
   return (
-    <section className="bg-white py-16 md:py-24 px-4 sm:px-6">
-      <div className="max-w-7xl mx-auto">
-        
-        {/* 🔝 Heading Zone */}
-        <div className="text-center mb-12 md:mb-16">
-          <p className="text-red-500 uppercase tracking-widest text-xs md:text-sm font-bold">
-            Client Reviews
+    <section className="px-4 py-20 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-red-600">Client love</p>
+            <h2 className="mt-2 text-3xl font-black tracking-[-0.06em] text-neutral-950 sm:text-4xl">What people feel after the upgrade.</h2>
+          </div>
+          <p className="max-w-xl text-sm leading-7 text-neutral-500">
+            The experience now feels closer to a premium design marketplace instead of a simple portfolio website.
           </p>
-
-          <h2 className="text-2xl md:text-4xl font-extrabold text-gray-900 mt-2 tracking-tight">
-            What Our Clients Say
-          </h2>
-          <div className="w-12 h-1 bg-red-500 mx-auto mt-4 rounded-full"></div>
         </div>
 
-        {/* 🎴 Responsive Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-          {reviews.map((item: ReviewItem, index: number) => (
-            <div
-              key={index}
-              className="bg-gray-50 border border-gray-100 rounded-3xl p-6 md:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition duration-300 flex flex-col justify-between"
-            >
+        <div className="mt-10 grid gap-5 lg:grid-cols-3">
+          {reviews.map((item) => (
+            <article key={item.name} className="flex h-full flex-col justify-between rounded-[30px] border border-neutral-200/70 bg-white p-6 shadow-[0_16px_40px_-30px_rgba(0,0,0,0.45)]">
               <div>
-                {/* ⭐ Premium Star Ratings & Quote Accent */}
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex gap-1 text-amber-500 text-sm">
-                    <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
-                  </div>
-                  <span className="text-gray-200 text-4xl font-serif leading-none">“</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex gap-1 text-amber-500">{"★★★★★".split("").map((star, index) => <span key={`${item.name}-${index}`}>{star}</span>)}</div>
+                  <span className="text-4xl font-serif text-red-100">“</span>
                 </div>
-
-                <p className="text-gray-600 text-sm md:text-base leading-relaxed mb-6 italic">
-                  "{item.review}"
-                </p>
+                <p className="mt-5 text-sm leading-7 text-neutral-600">"{item.review}"</p>
               </div>
-
-              {/* 👤 User Metadata */}
-              <div className="border-t border-gray-200/60 pt-4 flex items-center gap-3">
-                <div className="w-10 h-10 bg-red-50 text-red-500 rounded-full flex items-center justify-center font-bold text-sm border border-red-100">
-                  {item.name.charAt(0)}
-                </div>
+              <div className="mt-8 flex items-center gap-3 border-t border-neutral-100 pt-5">
+                <div className="grid h-11 w-11 place-items-center rounded-full bg-red-50 font-black text-red-600">{item.name.charAt(0)}</div>
                 <div>
-                  <h3 className="text-base font-bold text-gray-900">
-                    {item.name}
-                  </h3>
-                  <p className="text-gray-400 text-xs font-medium">
-                    📍 {item.city} Resident
-                  </p>
+                  <p className="text-sm font-black text-neutral-900">{item.name}</p>
+                  <p className="text-xs uppercase tracking-widest text-neutral-400">{item.city}</p>
                 </div>
               </div>
-            </div>
+            </article>
           ))}
         </div>
       </div>

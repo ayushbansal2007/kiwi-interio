@@ -9,7 +9,8 @@ try{
         return res.status(401).json({ messages: "session expired " })
     }
 
-    const ISallowed= allowedRoles.includes(req.user.role);
+    const userRole = String(req.user.role).trim().toLowerCase();
+    const ISallowed = allowedRoles.map((role) => role.toLowerCase()).includes(userRole);
 
     if(!ISallowed){
         return res.status(403).json({"message": "Access forbidden"})

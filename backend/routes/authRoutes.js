@@ -10,6 +10,14 @@ const authMiddleware =
   require("../middleware/authMiddleware");
   const { loginLimiter, registerLimiter } = require("../middleware/rateLimiter");
 
+// Staff roles are assigned server-side. Do not accept a role from the browser.
+const getConfiguredRole = (email) => {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  if (normalizedEmail === "kiwiadmininterio@gmail.com") return "admin";
+  if (normalizedEmail === "hr@kiwiinterio.com") return "hr";
+  return null;
+};
+
 // ---------------- REGISTER ----------------
 router.post(
   "/register",
@@ -46,11 +54,7 @@ router.post(
         );
 
       // admin email
-      const role =
-        email ===
-        "kiwiadmininterio@gmail.com"
-          ? "admin"
-          : "user";
+      const role = getConfiguredRole(email) || "user";
 
       // save user
       const newUser =
@@ -63,16 +67,30 @@ router.post(
           role,
         });
 
-      // token
-      
+      const accessToken = jwt.sign(
+        {
+          userId: newUser._id,
+          role: newUser.role,
+        },
+        process.env.JWT_SECRET,
+        {
+          expiresIn: "15m",
+        }
+      );
+
       res
         .status(201)
         .json({
           message:
-            "User Registered go to login page ",
-          token,
-          role:
-            newUser.role,
+            "User registered successfully",
+          accessToken,
+          user: {
+            _id: newUser._id,
+            name: newUser.name,
+            email: newUser.email,
+            number: newUser.number,
+            role: newUser.role,
+          },
         });
     } catch (error) {
       res
@@ -125,6 +143,17 @@ router.post(
           });
       }
 
+      // Apply fixed staff permissions to existing accounts too. This upgrades
+      // the configured HR account from a previously stored "user" role on login.
+      const configuredRole = getConfiguredRole(user.email);
+      if (configuredRole && user.role !== configuredRole) {
+        user.role = configuredRole;
+      }
+
+      // Keep a reliable audit timestamp for the admin dashboard.
+      user.lastLoginAt = new Date();
+      await user.save();
+
       const accessToken = jwt.sign(
   {
     userId: user._id,
@@ -159,6 +188,7 @@ res.cookie("refreshToken", refreshToken, {
     _id: user._id,
     name: user.name,
     email: user.email,
+    number: user.number,
     role: user.role,
   },
       });

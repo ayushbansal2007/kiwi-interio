@@ -9,7 +9,7 @@ const rolesMiddleware = require("../middleware/roleMiddleware");
 router.get("/interiors", async (req, res) => {
     try {
        const interiors = await Interior.find()
-            .select("title image price category subcategory style") // 👈 Heavy description aur tags ko list me se drop kiya
+            .select("title description image price category subcategory style roomType tags")
             .lean(); 
         res.json(interiors); // Sending the fetched interiors as a JSON response
     }

@@ -1,7 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReactElement } from "react";
-import { useParams, Link } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { BadgeCheck, ShieldCheck, ShoppingBag, Sparkles, Truck } from "lucide-react";
 import useDocumentTitle from "../hooks/useDocumentTitle";
+import useAuth from "../hooks/useAuth";
+import { apiClient } from "../services/apiClient";
+import { addToCart } from "../services/commerceService";
 
 interface Interior {
   _id: string;
@@ -18,19 +22,16 @@ interface Interior {
 
 function InteriorDetailPage(): ReactElement {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [interior, setInterior] = useState<Interior | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // FAQ state manager
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState("");
 
-  const API_BASE_URL = 
-    window.location.hostname === "localhost"
-      ? "http://localhost:5000/api"
-      : "https://kiwi-interio.onrender.com/api";
-
-  useDocumentTitle(interior ? `${interior.title} | Kiwi Interio` : "Loading Design Masterpiece...");
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://kiwi-interio.onrender.com";
+  useDocumentTitle(interior ? `${interior.title} | Kiwi Interio` : "Design Detail | Kiwi Interio");
 
   useEffect(() => {
     if (!id) return;
@@ -38,175 +39,155 @@ function InteriorDetailPage(): ReactElement {
     const fetchSingleInterior = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`${API_BASE_URL}/interiors/${id}`);
+        const res = await apiClient(`${API_BASE_URL}/api/interiors/${id}`);
         if (!res.ok) throw new Error("Design setup could not be retrieved.");
         const data = await res.json();
         setInterior(data);
       } catch (err: any) {
-        console.error(err);
         setError(err.message || "Something went wrong.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchSingleInterior();
-  }, [id, API_BASE_URL]);
+    void fetchSingleInterior();
+  }, [API_BASE_URL, id]);
+
+  const quickSpecs = useMemo(
+    () => interior
+      ? [
+          ["Category", interior.category],
+          ["Subcategory", interior.subcategory || "Signature concept"],
+          ["Style", interior.style || "Curated premium"],
+          ["Room type", interior.roomType || "Residential interior"],
+        ]
+      : [],
+    [interior]
+  );
+
+  const handleAddToCart = async () => {
+    if (!interior) return;
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    setBusy(true);
+    setNotice("");
+    try {
+      const payload = await addToCart(interior._id, 1);
+      if (!payload.success) throw new Error(payload.message || "Could not add to cart");
+      window.dispatchEvent(new Event("cart-updated"));
+      setNotice("Added to cart successfully");
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : "Could not add to cart");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center space-y-4">
-        <div className="w-12 h-12 border-4 border-stone-200 border-t-red-600 rounded-full animate-spin" />
-        <p className="text-xs uppercase font-bold tracking-[0.25em] text-stone-500">Loading Kiwi Blueprints...</p>
-      </div>
-    );
+    return <div className="grid min-h-screen place-items-center bg-[#fffcf8]"><span className="h-10 w-10 animate-spin rounded-full border-2 border-red-100 border-t-red-600" /></div>;
   }
 
   if (error || !interior) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
-        <h2 className="text-2xl font-black uppercase tracking-tight">{error || "Design Concept Not Found."}</h2>
-        <Link to="/" className="mt-8 bg-black text-white px-8 py-4 text-xs font-bold uppercase tracking-widest">Back To Collections</Link>
+      <div className="grid min-h-screen place-items-center bg-[#fffcf8] px-6 text-center">
+        <div>
+          <h2 className="text-3xl font-black tracking-[-0.05em] text-neutral-950">{error || "Design concept not found"}</h2>
+          <Link to="/interiors" className="mt-6 inline-flex rounded-full bg-neutral-950 px-6 py-3 text-sm font-bold text-white transition hover:bg-red-600">Back to collections</Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-white text-black pt-24 pb-32 px-4 sm:px-6 lg:px-16">
-      <div className="max-w-7xl mx-auto">
-        
-        {/* ─── UPPER ZONE: AMAZON HERO IMAGE & BUY BOX ─── */}
-        <div className="flex items-center gap-2 text-stone-400 text-[10px] font-bold tracking-widest uppercase mb-8">
-          <Link to="/" className="hover:text-black">COLLECTIONS</Link>
+    <main className="min-h-screen bg-[#fffcf8] px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-8">
+        <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">
+          <Link to="/interiors" className="transition hover:text-neutral-900">Collections</Link>
           <span>/</span>
           <span className="text-red-600">{interior.category}</span>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start pb-16 border-b border-stone-200">
-          {/* Left: HD Image Display */}
-          <div className="lg:col-span-7 border border-stone-100 bg-stone-50 shadow-xl overflow-hidden">
-            <img src={interior.image} alt={interior.title} className="w-full h-[350px] sm:h-[500px] lg:h-[580px] object-cover" />
+        <section className="grid gap-6 rounded-[34px] border border-neutral-200/80 bg-white p-4 shadow-[0_30px_80px_-50px_rgba(0,0,0,0.4)] sm:p-6 lg:grid-cols-[1.05fr_0.95fr] lg:p-8">
+          <div className="overflow-hidden rounded-[30px] bg-neutral-100">
+            <img src={interior.image} alt={interior.title} className="h-full min-h-[380px] w-full object-cover" />
           </div>
 
-          {/* Right: Premium Buy Box */}
-          <div className="lg:col-span-5 space-y-6">
-            <div>
-              <p className="text-xs font-black tracking-widest text-red-600 uppercase mb-1">{interior.roomType}</p>
-              <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-gray-900 leading-tight">{interior.title}</h1>
+          <div className="flex flex-col">
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded-full bg-red-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-red-600">{interior.category}</span>
+              {interior.style && <span className="rounded-full bg-neutral-950 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white">{interior.style}</span>}
             </div>
+            <h1 className="mt-5 text-4xl font-black tracking-[-0.07em] text-neutral-950 sm:text-5xl">{interior.title}</h1>
+            <p className="mt-4 text-sm leading-7 text-neutral-500 sm:text-base">{interior.description}</p>
 
-            <p className="text-stone-500 text-sm leading-relaxed font-light">{interior.description}</p>
-
-            <div className="bg-stone-50 border-l-4 border-black p-5 space-y-1">
-              <p className="text-stone-400 text-[9px] tracking-widest uppercase font-bold">M.R.P. Inclusive of Execution</p>
-              <p className="text-3xl font-black text-black tracking-tight">₹{interior.price.toLocaleString("en-IN")}/-</p>
-              <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wide">✔ Free Site Inspection & Layout Customization</p>
-            </div>
-
-            <div className="space-y-3">
-              <button className="w-full bg-black hover:bg-red-600 text-white text-xs font-bold uppercase tracking-widest py-4.5 transition-colors shadow-md">
-                Buy Now & Book Project
-              </button>
-              <button className="w-full border border-stone-300 hover:border-black text-black text-xs font-bold uppercase tracking-widest py-4 transition-colors">
-                Add to Blueprint Wishlist
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* ─── LOWER ZONE: AMAZON STYLE PRODUCT BREAKDOWN ─── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 pt-16">
-          
-          {/* Left Column: Specs Table & Package Details */}
-          <div className="lg:col-span-8 space-y-12">
-            
-            {/* 📊 Section 1: Technical Specifications Table */}
-            <div>
-              <h3 className="text-lg font-black uppercase tracking-wider mb-6 pb-2 border-b-2 border-black inline-block">
-                Product Technical Specifications
-              </h3>
-              <div className="border border-stone-200 overflow-hidden shadow-sm">
-                <table className="w-full text-left text-xs border-collapse">
-                  <tbody>
-                    <tr className="border-b border-stone-100 bg-stone-50">
-                      <td className="p-4 font-bold text-stone-500 uppercase tracking-wider w-1/3 border-r border-stone-200">Category</td>
-                      <td className="p-4 font-semibold text-black uppercase">{interior.category}</td>
-                    </tr>
-                    <tr className="border-b border-stone-100">
-                      <td className="p-4 font-bold text-stone-500 uppercase tracking-wider border-r border-stone-200">Subcategory</td>
-                      <td className="p-4 font-semibold text-black uppercase">{interior.subcategory}</td>
-                    </tr>
-                    <tr className="border-b border-stone-100 bg-stone-50">
-                      <td className="p-4 font-bold text-stone-500 uppercase tracking-wider border-r border-stone-200">Design Aesthetic</td>
-                      <td className="p-4 font-semibold text-black uppercase">{interior.style} Layout</td>
-                    </tr>
-                    <tr className="border-b border-stone-100">
-                      <td className="p-4 font-bold text-stone-500 uppercase tracking-wider border-r border-stone-200">Primary Material Used</td>
-                      <td className="p-4 text-stone-600">Premium HDMR & Anti-Scratch Acrylic Panels (Greenpanel/Action TESA)</td>
-                    </tr>
-                    <tr className="bg-stone-50">
-                      <td className="p-4 font-bold text-stone-500 uppercase tracking-wider border-r border-stone-200">Hardware & Fittings</td>
-                      <td className="p-4 text-stone-600">Soft-close Hydraulic Hinger & Hafele/Hettich Channels</td>
-                    </tr>
-                  </tbody>
-                </table>
+            <div className="mt-6 rounded-[28px] bg-[#fffaf6] p-5 ring-1 ring-neutral-100">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">Starting project price</p>
+              <p className="mt-2 text-4xl font-black tracking-[-0.06em] text-neutral-950">₹{interior.price.toLocaleString("en-IN")}</p>
+              <div className="mt-4 flex flex-wrap gap-3 text-xs text-neutral-500">
+                <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 ring-1 ring-neutral-100"><ShieldCheck size={14} className="text-emerald-500" /> Secure booking</span>
+                <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 ring-1 ring-neutral-100"><Truck size={14} className="text-sky-500" /> Free consultation</span>
+                <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 ring-1 ring-neutral-100"><Sparkles size={14} className="text-red-500" /> AI-ready suggestions</span>
               </div>
             </div>
 
-            {/* 📦 Section 2: What's Included in this Price */}
-            <div>
-              <h3 className="text-lg font-black uppercase tracking-wider mb-6 pb-2 border-b-2 border-black inline-block">
-                What's Included In the Estimate?
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {[
-                  "Complete raw material sourcing and on-site hardware delivery.",
-                  "Full carpentry fabrication with 10X Thin laser finishing.",
-                  "Premium lighting layout wiring with modular switch integration.",
-                  "5-Year onsite breakdown warranty certificate on structural profiles."
-                ].map((item, idx) => (
-                  <div key={idx} className="flex gap-3 items-start border border-stone-200 p-4 bg-stone-50">
-                    <span className="text-red-600 font-bold">✓</span>
-                    <p className="text-stone-600 text-xs leading-relaxed font-medium">{item}</p>
-                  </div>
-                ))}
-              </div>
+            {notice && <p className="mt-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{notice}</p>}
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <button onClick={handleAddToCart} disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-full border border-neutral-200 px-5 py-3.5 text-sm font-bold text-neutral-800 transition hover:border-red-200 hover:text-red-600 disabled:opacity-50">
+                <ShoppingBag size={16} />
+                {busy ? "Adding..." : "Add to cart"}
+              </button>
+              <button onClick={() => navigate(`/checkout?source=buy_now&id=${interior._id}&quantity=1`)} className="rounded-full bg-neutral-950 px-5 py-3.5 text-sm font-bold text-white transition hover:bg-red-600">
+                Buy now
+              </button>
             </div>
-
           </div>
+        </section>
 
-          {/* Right Column: FAQ Accordion Support */}
-          <div className="lg:col-span-4 space-y-6">
-            <h3 className="text-lg font-black uppercase tracking-wider pb-2 border-b-2 border-black inline-block w-full">
-              Have Questions? (FAQs)
-            </h3>
-            
-            <div className="space-y-3">
-              {[
-                { q: "Can I change colors or materials later?", a: "Yes, fully customizable! Site engineer validation ke baad aap finishes choose kar sakte hain." },
-                { q: "How long does the execution process take?", a: "Standard setups take 21-30 business days from blueprint approvals to final handover." },
-                { q: "Is there an EMI financing setup option available?", a: "Yes, zero-cost booking options are processed directly during site consultation checks." }
-              ].map((faq, index) => (
-                <div key={index} className="border border-stone-200 bg-white">
-                  <button 
-                    onClick={() => setOpenFaq(openFaq === index ? null : index)}
-                    className="w-full flex items-center justify-between p-4 text-left text-xs font-black uppercase tracking-wider transition-colors hover:bg-stone-50"
-                  >
-                    <span>{faq.q}</span>
-                    <span className="text-lg font-light text-stone-400">{openFaq === index ? "−" : "+"}</span>
-                  </button>
-                  {openFaq === index && (
-                    <div className="p-4 pt-0 text-stone-500 text-xs leading-relaxed font-light border-t border-stone-100 bg-stone-50">
-                      {faq.a}
-                    </div>
-                  )}
+        <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+          <section className="rounded-[30px] border border-neutral-200/80 bg-white p-6 shadow-sm">
+            <h2 className="text-2xl font-black tracking-[-0.04em] text-neutral-950">Quick specifications</h2>
+            <div className="mt-5 divide-y divide-neutral-100">
+              {quickSpecs.map(([label, value]) => (
+                <div key={label} className="flex items-center justify-between gap-4 py-4 text-sm">
+                  <span className="font-bold uppercase tracking-wider text-neutral-400">{label}</span>
+                  <span className="font-semibold text-neutral-800">{value}</span>
                 </div>
               ))}
             </div>
-          </div>
+          </section>
 
+          <section className="rounded-[30px] border border-neutral-200/80 bg-white p-6 shadow-sm">
+            <h2 className="text-2xl font-black tracking-[-0.04em] text-neutral-950">What comes with this concept</h2>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {[
+                "Design planning and modular concept detailing",
+                "Material and finish guidance from the team",
+                "Booking-ready checkout and profile history",
+                "Flexible AI assistance for related products",
+              ].map((item) => (
+                <div key={item} className="flex gap-3 rounded-[22px] bg-[#fffaf6] p-4 text-sm text-neutral-600 ring-1 ring-neutral-100">
+                  <BadgeCheck size={18} className="mt-0.5 shrink-0 text-emerald-500" />
+                  <p>{item}</p>
+                </div>
+              ))}
+            </div>
+
+            {interior.tags?.length > 0 && (
+              <div className="mt-6">
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-400">Tags</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {interior.tags.map((tag) => (
+                    <span key={tag} className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-neutral-600 ring-1 ring-neutral-200">{tag}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
         </div>
-
       </div>
     </main>
   );

@@ -21,6 +21,7 @@ export const registerUser = async (userData: {
   name: string;
   email: string;
   password: string;
+  number: string;
 }) => {
   const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
     method: "POST",

@@ -2,8 +2,8 @@ import {
   createContext,
   useEffect,
   useState,
-  ReactNode,
 } from "react";
+import type { ReactNode } from "react";
 
 import {
   refreshAccessToken,
@@ -17,6 +17,7 @@ interface User {
   _id: string;
   name: string;
   email: string;
+  number?: string;
   role: string;
 }
 
@@ -67,6 +68,9 @@ export const AuthProvider = ({
 
     // User
     setUser(userData);
+
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(userData));
   };
 
   // Logout
@@ -80,6 +84,8 @@ export const AuthProvider = ({
     setAccessToken(null);
     setApiAccessToken(null);
     setUser(null);
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
   };
 
   // Refresh App
@@ -111,12 +117,16 @@ export const AuthProvider = ({
           );
 
         setUser(profile);
+        localStorage.setItem("token", tokenData.accessToken);
+        localStorage.setItem("user", JSON.stringify(profile));
       } catch (error) {
         console.log(error);
 
         setAccessToken(null);
         setApiAccessToken(null);
         setUser(null);
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
       } finally {
         setLoading(false);
       }

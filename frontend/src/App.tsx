@@ -1,19 +1,20 @@
-import { Routes, Route } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 
+import Footer from "./components/Footer";
 import Hero from "./components/Hero";
 import InteriorList from "./components/InteriorList";
 import Navbar from "./components/Navbar";
-import WhyChooseUs from "./components/WhyChooseUs";
 import Testimonials from "./components/Testimonials";
-
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Profile from "./pages/Profile";
+import WhyChooseUs from "./components/WhyChooseUs";
 import Admin from "./pages/Admin";
 import AIAssistant from "./pages/AIAssistant";
-import ContactQuery from "./pages/ContactQuery"; // 👈 Hamara floating code import kiya
+import CartPage from "./pages/CartPage";
+import CheckoutPage from "./pages/CheckoutPage";
+import ContactQuery from "./pages/ContactQuery";
 import InteriorDetailPage from "./pages/InteriorDetailPage";
-import Footer from "./components/Footer";
+import Login from "./pages/Login";
+import Profile from "./pages/Profile";
+import Register from "./pages/Register";
 
 function App() {
   return (
@@ -21,7 +22,6 @@ function App() {
       <Navbar />
 
       <Routes>
-        {/* Home Page */}
         <Route
           path="/"
           element={
@@ -30,24 +30,22 @@ function App() {
               <InteriorList />
               <WhyChooseUs />
               <Testimonials />
-              <Footer/>
+              <Footer />
             </>
           }
         />
 
-        {/* Auth & Feature Pages */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/interiors" element={<InteriorList />} />
+        <Route path="/interior/:id" element={<InteriorDetailPage />} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/ai-assistant" element={<AIAssistant />} />
-        <Route path="/interior/:id" element={<InteriorDetailPage />} /> 
       </Routes>
-      
 
-      {/* 🎯 GLOBAL FLOATING LAYER */}
-      {/* Ye Routes ke bahaar hai, isliye har page par right-bottom me floating dikhega */}
       <ContactQuery />
     </>
   );

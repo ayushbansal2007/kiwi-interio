@@ -4,6 +4,7 @@ import useDocumentTitle from "../hooks/useDocumentTitle";
 import QueriesList from "./QueriesList"; 
 import useAuth from "../hooks/useAuth";
 import { apiClient } from "../services/apiClient";
+import AdminAnalytics from "./AdminAnalytics";
 
 interface Interior {
   _id: string;
@@ -21,7 +22,7 @@ interface Interior {
 function Admin() {
  const { user, accessToken } = useAuth();
 
-const finalRole = user?.role?.toLowerCase() || "";
+const finalRole = user?.role?.trim().toLowerCase() || "";
 const userEmail = user?.email?.toLowerCase() || "";
 
 const hasAccess =
@@ -45,8 +46,8 @@ const [interiors, setInteriors] = useState<Interior[]>([]);
 const [loadingId, setLoadingId] = useState<string | null>(null);
 const [successId, setSuccessId] = useState<string | null>(null);
 
-const [currentView, setCurrentView] = useState<"catalog" | "queries">(
-  finalRole === "hr" ? "queries" : "catalog"
+const [currentView, setCurrentView] = useState<"analytics" | "catalog" | "queries">(
+  finalRole === "hr" ? "queries" : "analytics"
 );
 
 const [selectedCategory, setSelectedCategory] = useState<string>("All");
@@ -73,8 +74,6 @@ useEffect(() => {
           ...item,
           tags: Array.isArray(item.tags)
             ? item.tags
-            : typeof item.tags === "string"
-            ? item.tags.split(",")
             : [],
         }));
 
@@ -137,7 +136,7 @@ const handleUpdate = async (
 
   try {
     const response = await apiClient(
-      `${API_BASE_URL}/api/interiors/${id}`,
+      `${API_BASE_URL}/api/interior/${id}`,
       {
         method: "PUT",
         headers: {
@@ -192,7 +191,7 @@ const filteredInteriors =
               Kiwi Interio Enterprise Architecture
             </p>
             <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-none text-neutral-950">
-              {currentView === "catalog" ? "Catalog Workspace" : "Query Operations"}
+              {currentView === "analytics" ? "Admin Intelligence" : currentView === "catalog" ? "Catalog Workspace" : "Query Operations"}
             </h1>
           </div>
           
@@ -211,9 +210,17 @@ const filteredInteriors =
         </header>
 
         {/* NAVIGATION TAB BAR */}
-        {finalRole === "admin" && (
+        {(finalRole === "admin" || finalRole === "hr") && (
           <div className="flex gap-3 mb-6 border-b border-neutral-200 pb-5 overflow-x-auto scaffolding-scroll">
             <button
+              onClick={() => setCurrentView("analytics")}
+              className={`text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-md transition-all whitespace-nowrap ${
+                currentView === "analytics" ? "bg-neutral-950 text-white shadow-sm" : "bg-white text-neutral-500 border border-neutral-200 hover:text-neutral-900 hover:border-neutral-400"
+              }`}
+            >
+              Intelligence
+            </button>
+            {finalRole === "admin" && <button
               onClick={() => setCurrentView("catalog")}
               className={`text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-md transition-all whitespace-nowrap ${
                 currentView === "catalog"
@@ -222,7 +229,7 @@ const filteredInteriors =
               }`}
             >
               Interior Catalog
-            </button>
+            </button>}
             <button
               onClick={() => setCurrentView("queries")}
               className={`text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-md transition-all whitespace-nowrap ${
@@ -237,7 +244,9 @@ const filteredInteriors =
         )}
 
         {/* ACCESS ROUTER RENDERING */}
-        {currentView === "queries" ? (
+        {currentView === "analytics" ? (
+          <AdminAnalytics />
+        ) : currentView === "queries" ? (
           <QueriesList />
         ) : (
           <>

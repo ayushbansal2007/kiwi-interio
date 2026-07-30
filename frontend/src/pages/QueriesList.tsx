@@ -46,11 +46,10 @@ function QueriesList() {
     const nextStatus = currentStatus === "Pending" ? "In-Progress" : "Resolved";
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/queries/update-status/${id}`, {
+      const res = await apiClient(`${API_BASE_URL}/api/queries/update-status/${id}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: token ? `Bearer ${token}` : "",
         },
         body: JSON.stringify({ status: nextStatus }),
       });

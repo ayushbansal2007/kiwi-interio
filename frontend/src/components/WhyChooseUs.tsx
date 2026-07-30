@@ -1,76 +1,54 @@
+import { Banknote, LayoutPanelTop, MapPinHouse, ShieldCheck } from "lucide-react";
 import type { ReactElement } from "react";
 
-// 🛡️ TYPE SPECIFICATION FOR THE INTERFACE
-interface BenefitItem {
-  title: string;
-  desc: string;
-  icon: string; // 👈 Har card ke liye alag visual context icon
-}
-
-const benefits: BenefitItem[] = [
+const benefits = [
   {
-    title: "Local Bhiwani Expertise",
-    desc: "Kiwi Interiors understands the home style, spatial dynamics, and interior needs of families in Bhiwani.",
-    icon: "🏢",
+    title: "Local expertise",
+    desc: "Designed with Bhiwani families, floor plans, and lifestyle expectations in mind.",
+    icon: MapPinHouse,
   },
   {
-    title: "Affordable Packages",
-    desc: "Beautiful premium interiors designed meticulously for every budget scale without compromising quality.",
-    icon: "💎",
+    title: "Commerce-ready buying",
+    desc: "Shortlist, cart, checkout and pay online without breaking your design discovery flow.",
+    icon: Banknote,
   },
   {
-    title: "Modern Designs",
-    desc: "Stylish, highly functional, and comfortable interiors perfectly crafted for contemporary living spaces.",
-    icon: "📐",
+    title: "Smarter discovery",
+    desc: "AI recommendations, refined catalog filters and detailed design pages work together.",
+    icon: LayoutPanelTop,
   },
   {
-    title: "Trusted Service",
-    desc: "From blueprint planning to final execution, Kiwi Interiors supports you seamlessly at every step.",
-    icon: "🛡️",
+    title: "Trusted fulfilment",
+    desc: "From first query to final order tracking, the whole journey stays transparent and secure.",
+    icon: ShieldCheck,
   },
 ];
 
 function WhyChooseUs(): ReactElement {
   return (
-    <section className="bg-red-50/50 py-16 md:py-24 px-4 sm:px-6">
-      <div className="max-w-7xl mx-auto">
-        
-        {/* 🔝 Strategic Heading Section */}
-        <div className="text-center mb-12 md:mb-16">
-          <p className="text-red-500 font-bold uppercase tracking-widest text-xs md:text-sm">
-            Why Choose Us
-          </p>
-
-          <h2 className="text-2xl md:text-4xl font-extrabold text-gray-900 mt-2 tracking-tight">
-            Best Interior Service in Bhiwani
-          </h2>
-
-          <p className="text-gray-500 max-w-2xl mx-auto mt-4 text-sm md:text-base leading-relaxed">
-            Kiwi Interiors brings modern, luxury, and elegant interior design solutions 
-            specially crafted for modern homes and creative commercial spaces.
+    <section className="px-4 py-20 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl rounded-[36px] border border-neutral-200/70 bg-white px-6 py-8 shadow-[0_20px_60px_-45px_rgba(0,0,0,0.4)] sm:px-8 sm:py-10">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-red-600">Why Kiwi Interio</p>
+            <h2 className="mt-3 text-3xl font-black tracking-[-0.06em] text-neutral-950 sm:text-4xl">
+              A smoother interior-buying experience.
+            </h2>
+          </div>
+          <p className="max-w-xl text-sm leading-7 text-neutral-500">
+            The same premium visual identity now supports an easier buying journey—browse, compare, consult, cart and convert from one cohesive interface.
           </p>
         </div>
 
-        {/* 🎴 Advanced Responsive Card Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-          {benefits.map((item: BenefitItem, index: number) => (
-            <div
-              key={index}
-              className="bg-white rounded-3xl p-6 md:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition duration-300 border border-gray-100 flex flex-col items-start"
-            >
-              {/* 🏷️ Icon Badge Wrapper */}
-              <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-red-50 flex items-center justify-center text-xl md:text-2xl mb-5 border border-red-100/50">
-                {item.icon}
-              </div>
-
-              <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2">
-                {item.title}
-              </h3>
-
-              <p className="text-gray-500 text-sm md:text-base leading-relaxed">
-                {item.desc}
-              </p>
-            </div>
+        <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {benefits.map(({ title, desc, icon: Icon }) => (
+            <article key={title} className="rounded-[28px] border border-neutral-100 bg-[#fffaf6] p-5 transition duration-300 hover:-translate-y-1 hover:shadow-xl">
+              <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white text-red-600 shadow-sm ring-1 ring-red-100">
+                <Icon size={20} />
+              </span>
+              <h3 className="mt-5 text-lg font-black tracking-[-0.03em] text-neutral-950">{title}</h3>
+              <p className="mt-2 text-sm leading-6 text-neutral-500">{desc}</p>
+            </article>
           ))}
         </div>
       </div>
