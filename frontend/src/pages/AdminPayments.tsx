@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { CreditCard, IndianRupee, RefreshCw, Wallet } from "lucide-react";
+import {
+  CreditCard,
+  IndianRupee,
+  RefreshCw,
+  Wallet,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { apiClient } from "../services/apiClient";
 
 type OrderRecord = {
@@ -14,7 +20,11 @@ type OrderRecord = {
     email?: string;
     number?: string;
   };
-  items: { title: string; quantity: number; price: number }[];
+  items: {
+    title: string;
+    quantity: number;
+    price: number;
+  }[];
 };
 
 type PaymentsPayload = {
@@ -32,6 +42,12 @@ type PaymentsPayload = {
   }[];
 };
 
+type SummaryCard = {
+  label: string;
+  value: string | number;
+  icon: LucideIcon;
+};
+
 const currency = new Intl.NumberFormat("en-IN", {
   style: "currency",
   currency: "INR",
@@ -45,27 +61,52 @@ const paymentLabels: Record<string, string> = {
 };
 
 export default function AdminPayments() {
-  const [payload, setPayload] = useState<PaymentsPayload | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
+  const [payload, setPayload] =
+    useState<PaymentsPayload | null>(null);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [refreshing, setRefreshing] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
   const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL || "https://kiwi-interio.onrender.com";
+    import.meta.env.VITE_API_BASE_URL ||
+    "https://kiwi-interio.onrender.com";
 
   const loadPayments = useCallback(
     async (isRefresh = false) => {
-      isRefresh ? setRefreshing(true) : setLoading(true);
+      isRefresh
+        ? setRefreshing(true)
+        : setLoading(true);
+
       setError("");
 
       try {
-        const response = await apiClient(`${API_BASE_URL}/api/admin/orders?limit=50`);
-        const data = await response.json();
+        const response = await apiClient(
+          `${API_BASE_URL}/api/admin/orders?limit=50`
+        );
+
+        const data =
+          await response.json();
+
         if (!response.ok) {
-          throw new Error(data.message || "Could not load payment data");
+          throw new Error(
+            data.message ||
+              "Could not load payment data"
+          );
         }
+
         setPayload(data.data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Could not load payment data");
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Could not load payment data"
+        );
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -78,32 +119,57 @@ export default function AdminPayments() {
     void loadPayments();
   }, [loadPayments]);
 
-  const updateOrderStatus = async (
-    orderId: string,
-    patch: { orderStatus?: string; paymentStatus?: string }
-  ) => {
-    const response = await apiClient(`${API_BASE_URL}/api/admin/orders/${orderId}/status`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patch),
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.message || "Could not update order");
-    }
-
-    setPayload((current) =>
-      current
-        ? {
-            ...current,
-            orders: current.orders.map((order) =>
-              order._id === orderId ? { ...order, ...patch } : order
+  const updateOrderStatus =
+    async (
+      orderId: string,
+      patch: {
+        orderStatus?: string;
+        paymentStatus?: string;
+      }
+    ) => {
+      const response =
+        await apiClient(
+          `${API_BASE_URL}/api/admin/orders/${orderId}/status`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify(
+              patch
             ),
           }
-        : current
-    );
-  };
+        );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+            "Could not update order"
+        );
+      }
+
+      setPayload((current) =>
+        current
+          ? {
+              ...current,
+              orders:
+                current.orders.map(
+                  (order) =>
+                    order._id === orderId
+                      ? {
+                          ...order,
+                          ...patch,
+                        }
+                      : order
+                ),
+            }
+          : current
+      );
+    };
 
   if (loading) {
     return (
@@ -123,69 +189,121 @@ export default function AdminPayments() {
 
   const summary = payload?.summary;
 
+  const summaryCards: SummaryCard[] = [
+    {
+      label: "Total Orders",
+      value:
+        summary?.totalOrders ?? 0,
+      icon: Wallet,
+    },
+    {
+      label: "Paid Revenue",
+      value: currency.format(
+        summary?.totalRevenue ?? 0
+      ),
+      icon: IndianRupee,
+    },
+    {
+      label: "Paid Orders",
+      value:
+        summary?.paidOrders ?? 0,
+      icon: CreditCard,
+    },
+    {
+      label: "Pending Payments",
+      value:
+        summary?.pendingPayments ??
+        0,
+      icon: RefreshCw,
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-red-600">
             Payments workspace
           </p>
+
           <h2 className="mt-2 text-2xl font-black tracking-[-0.04em] text-neutral-950">
-            Orders & payment methods
+            Orders & Payment Methods
           </h2>
         </div>
+
         <button
           onClick={() => void loadPayments(true)}
           disabled={refreshing}
           className="inline-flex items-center gap-2 rounded-full bg-neutral-950 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition hover:bg-red-600 disabled:opacity-60"
         >
-          <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+          <RefreshCw
+            size={14}
+            className={refreshing ? "animate-spin" : ""}
+          />
           Refresh
         </button>
       </div>
 
+      {/* ================= SUMMARY CARDS ================= */}
+
       <div className="grid gap-4 md:grid-cols-4">
-        {[
-          ["Total orders", summary?.totalOrders || 0, Wallet],
-          ["Paid revenue", currency.format(summary?.totalRevenue || 0), IndianRupee],
-          ["Paid orders", summary?.paidOrders || 0, CreditCard],
-          ["Pending payments", summary?.pendingPayments || 0, RefreshCw],
-        ].map(([label, value, Icon]) => (
-          <article
-            key={String(label)}
-            className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm"
-          >
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
-                {label}
+        {summaryCards.map((card) => {
+          const Icon = card.icon;
+
+          return (
+            <article
+              key={card.label}
+              className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm"
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
+                  {card.label}
+                </p>
+
+                <Icon
+                  size={18}
+                  className="text-red-500"
+                />
+              </div>
+
+              <p className="mt-3 text-2xl font-black text-neutral-950">
+                {card.value}
               </p>
-              <Icon size={16} className="text-red-500" />
-            </div>
-            <p className="mt-3 text-2xl font-black text-neutral-950">{value}</p>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </div>
+
+      {/* ================= PAYMENT BREAKDOWN ================= */}
 
       <section className="rounded-2xl border border-neutral-200 bg-white p-5">
         <h3 className="text-sm font-black uppercase tracking-wider text-neutral-950">
-          Payment method breakdown
+          Payment Method Breakdown
         </h3>
+
         <div className="mt-4 grid gap-3 md:grid-cols-3">
-          {(payload?.paymentMethodBreakdown || []).map((item) => (
-            <div
-              key={item._id}
-              className="rounded-xl bg-neutral-50 px-4 py-3 ring-1 ring-neutral-100"
-            >
-              <p className="text-xs font-bold text-neutral-950">
-                {paymentLabels[item._id] || item._id}
-              </p>
-              <p className="mt-1 text-sm text-neutral-500">
-                {item.count} orders · {currency.format(item.amount)}
-              </p>
-            </div>
-          ))}
+          {(payload?.paymentMethodBreakdown || []).map(
+            (item) => (
+              <div
+                key={item._id}
+                className="rounded-xl bg-neutral-50 px-4 py-3 ring-1 ring-neutral-100"
+              >
+                <p className="text-xs font-bold text-neutral-950">
+                  {paymentLabels[item._id] ||
+                    item._id}
+                </p>
+
+                <p className="mt-1 text-sm text-neutral-500">
+                  {item.count} Orders ·{" "}
+                  {currency.format(item.amount)}
+                </p>
+              </div>
+            )
+          )}
         </div>
       </section>
+
+      {/* ================= ORDER LIST ================= */}
 
       <section className="space-y-4">
         {(payload?.orders || []).map((order) => (
@@ -194,66 +312,94 @@ export default function AdminPayments() {
             className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm"
           >
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-red-600">
                   Order #{order._id.slice(-6)}
                 </p>
+
                 <h4 className="mt-2 text-xl font-black text-neutral-950">
                   {currency.format(order.totalAmount)}
                 </h4>
+
                 <p className="mt-1 text-sm text-neutral-500">
-                  {order.userId?.name || "Guest"} · {order.userId?.email || "No email"}
+                  {order.userId?.name ||
+                    "Guest"}
+                  {" · "}
+                  {order.userId?.email ||
+                    "No Email"}
                 </p>
+
                 <p className="mt-1 text-xs text-neutral-400">
-                  {new Date(order.createdAt).toLocaleString("en-IN")}
+                  {new Date(
+                    order.createdAt
+                  ).toLocaleString("en-IN")}
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-2">
+
                 <span className="rounded-full bg-neutral-950 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white">
-                  {paymentLabels[order.paymentMethod] || order.paymentMethod}
+                  {paymentLabels[
+                    order.paymentMethod
+                  ] || order.paymentMethod}
                 </span>
+
                 <span className="rounded-full bg-red-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-red-600">
                   {order.paymentStatus}
                 </span>
+
                 <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600">
                   {order.orderStatus}
                 </span>
+
               </div>
             </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
-              {order.paymentStatus === "pending" && order.paymentMethod !== "razorpay" && (
-                <button
-                  onClick={() =>
-                    void updateOrderStatus(order._id, { paymentStatus: "paid", orderStatus: "confirmed" })
-                  }
-                  className="rounded-full bg-emerald-600 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-white"
-                >
-                  Mark paid
-                </button>
-              )}
+                          {order.paymentStatus === "pending" &&
+                order.paymentMethod !== "razorpay" && (
+                  <button
+                    onClick={() =>
+                      void updateOrderStatus(order._id, {
+                        paymentStatus: "paid",
+                        orderStatus: "confirmed",
+                      })
+                    }
+                    className="rounded-full bg-emerald-600 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-white transition hover:bg-emerald-700"
+                  >
+                    Mark Paid
+                  </button>
+                )}
+
               {order.orderStatus !== "completed" && (
                 <button
                   onClick={() =>
-                    void updateOrderStatus(order._id, { orderStatus: "completed" })
+                    void updateOrderStatus(order._id, {
+                      orderStatus: "completed",
+                    })
                   }
-                  className="rounded-full bg-neutral-950 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-white"
+                  className="rounded-full bg-neutral-950 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-white transition hover:bg-neutral-800"
                 >
-                  Mark completed
+                  Mark Completed
                 </button>
               )}
+
               {order.orderStatus !== "cancelled" && (
                 <button
                   onClick={() =>
-                    void updateOrderStatus(order._id, { orderStatus: "cancelled" })
+                    void updateOrderStatus(order._id, {
+                      orderStatus: "cancelled",
+                    })
                   }
-                  className="rounded-full border border-neutral-200 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-neutral-600"
+                  className="rounded-full border border-neutral-200 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-neutral-600 transition hover:bg-neutral-100"
                 >
-                  Cancel order
+                  Cancel Order
                 </button>
               )}
             </div>
+
+            {/* ================= ORDER ITEMS ================= */}
 
             <div className="mt-4 grid gap-2 md:grid-cols-2">
               {order.items.map((item, index) => (
@@ -261,7 +407,21 @@ export default function AdminPayments() {
                   key={`${order._id}-${index}`}
                   className="rounded-xl bg-neutral-50 px-3 py-2 text-sm text-neutral-700"
                 >
-                  {item.title} · Qty {item.quantity} · {currency.format(item.price * item.quantity)}
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">
+                      {item.title}
+                    </span>
+
+                    <span className="text-xs text-neutral-500">
+                      Qty {item.quantity}
+                    </span>
+                  </div>
+
+                  <p className="mt-1 text-red-600 font-bold">
+                    {currency.format(
+                      item.price * item.quantity
+                    )}
+                  </p>
                 </div>
               ))}
             </div>

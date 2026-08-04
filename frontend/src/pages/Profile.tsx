@@ -8,6 +8,7 @@ import {
   Sparkles,
   UserRound,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 import useAuth from "../hooks/useAuth";
 import { fetchCart, fetchOrders } from "../services/commerceService";
@@ -100,6 +101,32 @@ function Profile() {
     () => orders.filter((order) => order.paymentStatus === "paid").length,
     [orders]
   );
+  const dashboardCards: {
+  label: string;
+  value: string;
+  icon: LucideIcon;
+}[] = [
+  {
+    label: "Cart value",
+    value: `₹${totalCartValue.toLocaleString("en-IN")}`,
+    icon: ShoppingBag,
+  },
+  {
+    label: "Saved items",
+    value: `${cartItems.length}`,
+    icon: Package,
+  },
+  {
+    label: "Total orders",
+    value: `${orders.length}`,
+    icon: CreditCard,
+  },
+  {
+    label: "Paid orders",
+    value: `${paidOrders}`,
+    icon: Sparkles,
+  },
+];
 
   if (!loading && !accessToken) {
     return <Navigate to="/login" />;
@@ -170,25 +197,24 @@ function Profile() {
             </div>
 
             <div className="grid gap-3 bg-neutral-950 p-6 text-white sm:grid-cols-2 lg:grid-cols-1">
-              {[
-                ["Cart value", `₹${totalCartValue.toLocaleString("en-IN")}`, ShoppingBag],
-                ["Saved items", `${cartItems.length}`, Package],
-                ["Total orders", `${orders.length}`, CreditCard],
-                ["Paid orders", `${paidOrders}`, Sparkles],
-              ].map(([label, value, Icon]) => (
-                <div
-                  key={String(label)}
-                  className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4"
-                >
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
-                      {label}
-                    </p>
-                    <Icon size={16} className="text-red-300" />
-                  </div>
-                  <p className="mt-2 text-2xl font-black">{value}</p>
-                </div>
-              ))}
+             {dashboardCards.map(({ label, value, icon: Icon }) => (
+  <div
+    key={label}
+    className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4"
+  >
+    <div className="flex items-center justify-between">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
+        {label}
+      </p>
+
+      <Icon size={16} className="text-red-300" />
+    </div>
+
+    <p className="mt-2 text-2xl font-black">
+      {value}
+    </p>
+  </div>
+))}
             </div>
           </div>
         </section>
