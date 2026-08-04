@@ -5,6 +5,7 @@ import QueriesList from "./QueriesList";
 import useAuth from "../hooks/useAuth";
 import { apiClient } from "../services/apiClient";
 import AdminAnalytics from "./AdminAnalytics";
+import AdminPayments from "./AdminPayments";
 
 interface Interior {
   _id: string;
@@ -46,7 +47,7 @@ const [interiors, setInteriors] = useState<Interior[]>([]);
 const [loadingId, setLoadingId] = useState<string | null>(null);
 const [successId, setSuccessId] = useState<string | null>(null);
 
-const [currentView, setCurrentView] = useState<"analytics" | "catalog" | "queries">(
+const [currentView, setCurrentView] = useState<"analytics" | "catalog" | "queries" | "payments">(
   finalRole === "hr" ? "queries" : "analytics"
 );
 
@@ -191,7 +192,7 @@ const filteredInteriors =
               Kiwi Interio Enterprise Architecture
             </p>
             <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-none text-neutral-950">
-              {currentView === "analytics" ? "Admin Intelligence" : currentView === "catalog" ? "Catalog Workspace" : "Query Operations"}
+              {currentView === "analytics" ? "Admin Intelligence" : currentView === "catalog" ? "Catalog Workspace" : currentView === "payments" ? "Payments Control" : "Query Operations"}
             </h1>
           </div>
           
@@ -230,6 +231,16 @@ const filteredInteriors =
             >
               Interior Catalog
             </button>}
+            {finalRole === "admin" && <button
+              onClick={() => setCurrentView("payments")}
+              className={`text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-md transition-all whitespace-nowrap ${
+                currentView === "payments"
+                  ? "bg-neutral-950 text-white shadow-sm"
+                  : "bg-white text-neutral-500 border border-neutral-200 hover:text-neutral-900 hover:border-neutral-400"
+              }`}
+            >
+              Payments
+            </button>}
             <button
               onClick={() => setCurrentView("queries")}
               className={`text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-md transition-all whitespace-nowrap ${
@@ -246,6 +257,8 @@ const filteredInteriors =
         {/* ACCESS ROUTER RENDERING */}
         {currentView === "analytics" ? (
           <AdminAnalytics />
+        ) : currentView === "payments" ? (
+          <AdminPayments />
         ) : currentView === "queries" ? (
           <QueriesList />
         ) : (

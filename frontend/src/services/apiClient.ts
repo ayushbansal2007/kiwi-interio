@@ -33,6 +33,7 @@ export const apiClient = async (
 
       if (data.accessToken) {
         accessToken = data.accessToken;
+        localStorage.setItem("token", data.accessToken);
 
         headers.set(
           "Authorization",

@@ -1,6 +1,7 @@
 import {
   createContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import type { ReactNode } from "react";
@@ -9,6 +10,7 @@ import {
   refreshAccessToken,
   logoutUser,
   getProfile,
+  storeRefreshToken,
 } from "../services/authService";
 
 import { setAccessToken as setApiAccessToken } from "../services/apiClient";
@@ -19,6 +21,8 @@ interface User {
   email: string;
   number?: string;
   role: string;
+  avatar?: string;
+  authProvider?: string;
 }
 
 interface AuthContextType {
@@ -28,7 +32,8 @@ interface AuthContextType {
 
   login: (
     token: string,
-    user: User
+    user: User,
+    refreshToken?: string
   ) => void;
 
   logout: () => Promise<void>;
@@ -43,6 +48,8 @@ interface Props {
   children: ReactNode;
 }
 
+const ACCESS_TOKEN_REFRESH_MS = 12 * 60 * 1000;
+
 export const AuthProvider = ({
   children,
 }: Props) => {
@@ -55,25 +62,51 @@ export const AuthProvider = ({
   const [loading, setLoading] =
     useState(true);
 
-  // Login
+  const refreshTimerRef = useRef<number | null>(null);
+
+  const clearRefreshTimer = () => {
+    if (refreshTimerRef.current) {
+      window.clearInterval(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+  };
+
+  const scheduleTokenRefresh = () => {
+    clearRefreshTimer();
+
+    refreshTimerRef.current = window.setInterval(async () => {
+      try {
+        const tokenData = await refreshAccessToken();
+        if (!tokenData.accessToken) return;
+
+        setAccessToken(tokenData.accessToken);
+        setApiAccessToken(tokenData.accessToken);
+        localStorage.setItem("token", tokenData.accessToken);
+      } catch (error) {
+        console.log(error);
+      }
+    }, ACCESS_TOKEN_REFRESH_MS);
+  };
+
   const login = (
     token: string,
-    userData: User
+    userData: User,
+    refreshToken?: string
   ) => {
-    // React State
     setAccessToken(token);
-
-    // apiClient Memory
     setApiAccessToken(token);
-
-    // User
     setUser(userData);
 
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(userData));
+
+    if (refreshToken) {
+      storeRefreshToken(refreshToken);
+    }
+
+    scheduleTokenRefresh();
   };
 
-  // Logout
   const logout = async () => {
     try {
       await logoutUser();
@@ -81,14 +114,15 @@ export const AuthProvider = ({
       console.log(error);
     }
 
+    clearRefreshTimer();
     setAccessToken(null);
     setApiAccessToken(null);
     setUser(null);
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    storeRefreshToken(null);
   };
 
-  // Refresh App
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -100,17 +134,14 @@ export const AuthProvider = ({
           return;
         }
 
-        // React State
         setAccessToken(
           tokenData.accessToken
         );
 
-        // apiClient Memory
         setApiAccessToken(
           tokenData.accessToken
         );
 
-        // Profile
         const profile =
           await getProfile(
             tokenData.accessToken
@@ -119,6 +150,7 @@ export const AuthProvider = ({
         setUser(profile);
         localStorage.setItem("token", tokenData.accessToken);
         localStorage.setItem("user", JSON.stringify(profile));
+        scheduleTokenRefresh();
       } catch (error) {
         console.log(error);
 
@@ -127,12 +159,17 @@ export const AuthProvider = ({
         setUser(null);
         localStorage.removeItem("token");
         localStorage.removeItem("user");
+        storeRefreshToken(null);
       } finally {
         setLoading(false);
       }
     };
 
-    checkAuth();
+    void checkAuth();
+
+    return () => {
+      clearRefreshTimer();
+    };
   }, []);
 
   return (

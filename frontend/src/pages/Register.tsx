@@ -4,6 +4,8 @@ import { ArrowRight, Mail, Phone, Sparkles, UserRound } from "lucide-react";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 import { registerUser } from "../services/authService";
 import useAuth from "../hooks/useAuth";
+import GoogleLoginButton from "../components/GoogleLoginButton";
+import { loginWithGoogle } from "../services/authService";
 
 const fieldConfig = [
   { key: "name", label: "Full name", icon: UserRound, type: "text" },
@@ -38,7 +40,7 @@ function Register() {
         throw new Error(data.message || "Registration failed");
       }
 
-      login(data.accessToken, data.user);
+      login(data.accessToken, data.user, data.refreshToken);
       navigate("/profile");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
@@ -70,6 +72,33 @@ function Register() {
           <h2 className="mt-2 text-3xl font-black tracking-[-0.06em] text-neutral-950">Start your design journey.</h2>
 
           <div className="mt-8 grid gap-4">
+            <GoogleLoginButton
+              disabled={loading}
+              onSuccess={async (credential) => {
+                setLoading(true);
+                setError("");
+                try {
+                  const data = await loginWithGoogle(credential);
+                  if (!data.accessToken || !data.user) {
+                    throw new Error(data.message || "Google sign-in failed");
+                  }
+                  login(data.accessToken, data.user, data.refreshToken);
+                  navigate("/profile");
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : "Google sign-in failed");
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              onError={setError}
+            />
+
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-neutral-200" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">or email</span>
+              <div className="h-px flex-1 bg-neutral-200" />
+            </div>
+
             {fieldConfig.map(({ key, label, icon: Icon, type }) => (
               <label key={key} className="block">
                 <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-neutral-400">{label}</span>

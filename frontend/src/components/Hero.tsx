@@ -42,7 +42,7 @@ function Hero(): ReactElement {
             {[
               ["250+", "Live design options"],
               ["24 hrs", "Average query callback"],
-              ["Razorpay", "Secure online checkout"],
+              ["100%", "Verified interior designers"]
             ].map(([value, label]) => (
               <div key={label} className="rounded-3xl border border-neutral-100 bg-[#fffaf6] p-4">
                 <p className="text-2xl font-black tracking-[-0.06em] text-neutral-950">{value}</p>

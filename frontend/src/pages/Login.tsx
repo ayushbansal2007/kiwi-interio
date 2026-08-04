@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Mail, Lock, ArrowRight, Sparkles } from "lucide-react";
+import { Mail, Lock, ArrowRight, Sparkles, ShieldCheck } from "lucide-react";
 import WelcomePopup from "../components/WelcomePopup";
+import GoogleLoginButton from "../components/GoogleLoginButton";
 import useDocumentTitle from "../hooks/useDocumentTitle";
-import { loginUser } from "../services/authService";
+import { loginUser, loginWithGoogle } from "../services/authService";
 import useAuth from "../hooks/useAuth";
 
 function Login() {
@@ -11,143 +12,155 @@ function Login() {
   const [password, setPassword] = useState("");
   const [showPopup, setShowPopup] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useDocumentTitle("Login | Kiwi Interio");
   const navigate = useNavigate();
-   const { login } = useAuth();
+  const { login } = useAuth();
+
+  const completeLogin = (data: {
+    accessToken?: string;
+    refreshToken?: string;
+    user?: Parameters<typeof login>[1];
+    message?: string;
+  }) => {
+    if (!data.accessToken || !data.user) {
+      throw new Error(data.message || "Invalid email or password");
+    }
+
+    login(data.accessToken, data.user, data.refreshToken);
+    setShowPopup(true);
+
+    setTimeout(() => {
+      navigate("/profile");
+    }, 1800);
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
+    if (loading) return;
 
-  if (loading) return;
+    setLoading(true);
+    setError("");
 
-  setLoading(true);
-
-  try {
-    const data = await loginUser(email.trim(), password);
-
-    if (data.accessToken) {
-      login(data.accessToken, data.user);
-
-      setShowPopup(true);
-
-      setTimeout(() => {
-        navigate("/");
-      }, 2500);
-    } else {
-      alert(data.message || "Invalid Email or Password");
+    try {
+      const data = await loginUser(email.trim(), password);
+      completeLogin(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.log(error);
-    alert("Something went wrong.");
-  } finally {
-    setLoading(false);
-  }
-};
-  return (
-    // 🟢 FIXED: Mobile viewport height clamp kiya aur automatic alignment handle ki taaki keyboard layout collapse na kare
-    <div className="min-h-[calc(100vh-60px)] md:min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-red-50/60 px-4 sm:px-6 py-8 relative overflow-hidden">
-      
-      {/* Premium Ambient Background Blobs */}
-      <div className="absolute top-[-10%] left-[-10%] w-[300px] h-[300px] rounded-full bg-red-400/10 blur-[80px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[300px] h-[300px] rounded-full bg-orange-400/10 blur-[80px] pointer-events-none" />
+  };
 
-      {/* Main Glassmorphism Card Container */}
-      {/* 🟢 FIXED: Card ko mobile par `w-full` aur full center space di hai taaki screen khulte hi sabse pehle saamne chamke */}
-      <div className="bg-white/80 backdrop-blur-xl border border-gray-100 p-6 sm:p-10 rounded-[28px] sm:rounded-[32px] shadow-2xl shadow-red-900/5 w-full max-w-[420px] transition-all duration-300 transform scale-100 z-10">
-        
-        {/* Branding Head */}
-        <div className="text-center mb-8">
-          <div className="inline-flex bg-gradient-to-tr from-red-500 to-red-600 text-white p-3.5 rounded-[22px] mb-4 shadow-lg shadow-red-500/20">
-            <Sparkles size={24} />
+  const handleGoogleLogin = async (credential: string) => {
+    if (loading) return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const data = await loginWithGoogle(credential);
+      completeLogin(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Google login failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#fffcf8] px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto grid max-w-6xl overflow-hidden rounded-[36px] border border-neutral-200/80 bg-white shadow-[0_30px_80px_-50px_rgba(0,0,0,0.45)] lg:grid-cols-[0.95fr_1.05fr]">
+        <div className="relative overflow-hidden bg-neutral-950 px-8 py-10 text-white">
+          <div className="absolute -left-14 top-10 h-40 w-40 rounded-full bg-red-500/20 blur-3xl" />
+          <div className="absolute bottom-0 right-0 h-56 w-56 rounded-full bg-orange-300/10 blur-3xl" />
+          <div className="relative">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-red-200">
+              <Sparkles size={12} />
+              Kiwi Interio
+            </span>
+            <h1 className="mt-6 text-4xl font-black tracking-[-0.07em] sm:text-5xl">
+              Welcome back to your design workspace.
+            </h1>
+
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 uppercase tracking-tight">
-            Welcome Back
-          </h1>
-          <p className="text-gray-500 text-xs sm:text-sm mt-1.5">
-            Log in to manage your premium spaces
-          </p>
         </div>
 
-        {/* Core Form Area */}
-        <form onSubmit={handleLogin} className="space-y-4">
-          
-          {/* Email Input Field */}
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block ml-1">
-              Email Address
-            </label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 pointer-events-none">
-                <Mail size={18} />
-              </span>
-              <input
-                type="email"
-                placeholder="name@company.com"
-                className="w-full bg-gray-50/50 border border-gray-200 focus:border-red-500 focus:bg-white pl-11 pr-4 py-3 sm:py-3.5 rounded-xl outline-none text-sm text-gray-800 transition-all duration-200 shadow-inner"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+        <div className="px-6 py-8 sm:px-10 sm:py-10">
+          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-red-600">Sign in</p>
+          <h2 className="mt-2 text-3xl font-black tracking-[-0.06em] text-neutral-950">Log in to continue.</h2>
+
+          <div className="mt-6 space-y-4">
+            <GoogleLoginButton
+              disabled={loading}
+              onSuccess={handleGoogleLogin}
+              onError={setError}
+            />
+
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-neutral-200" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">or email</span>
+              <div className="h-px flex-1 bg-neutral-200" />
             </div>
           </div>
 
-          {/* Password Input Field */}
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block ml-1">
-              Password
+          <form onSubmit={handleLogin} className="mt-6 space-y-4">
+            <label className="block">
+              <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-neutral-400">Email</span>
+              <div className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-[#fffaf6] px-4 py-3">
+                <Mail size={16} className="text-neutral-400" />
+                <input
+                  type="email"
+                  placeholder="name@company.com"
+                  className="w-full bg-transparent text-sm outline-none"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
             </label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 pointer-events-none">
-                <Lock size={18} />
-              </span>
-              <input
-                type="password"
-                placeholder="••••••••"
-                className="w-full bg-gray-50/50 border border-gray-200 focus:border-red-500 focus:bg-white pl-11 pr-4 py-3 sm:py-3.5 rounded-xl outline-none text-sm text-gray-800 transition-all duration-200 shadow-inner"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-          </div>
 
-          {/* Forgot Password Link Element (Optional Aesthetic Layout) */}
-          <div className="flex justify-end pr-1">
-            <a href="#forgot" className="text-[11px] font-semibold text-gray-400 hover:text-red-500 transition-colors">
-              Forgot Password?
-            </a>
-          </div>
+            <label className="block">
+              <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-neutral-400">Password</span>
+              <div className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-[#fffaf6] px-4 py-3">
+                <Lock size={16} className="text-neutral-400" />
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  className="w-full bg-transparent text-sm outline-none"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+            </label>
 
-          {/* CTA Action Button */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-gradient-to-r from-gray-900 to-stone-900 hover:from-red-500 hover:to-red-600 text-white font-bold text-xs uppercase tracking-widest py-3.5 sm:py-4 rounded-xl transition-all duration-300 shadow-md hover:shadow-xl active:scale-[0.98] disabled:opacity-40 flex items-center justify-center gap-2 mt-2"
-          >
-            {loading ? (
-              <span>Authenticating...</span>
-            ) : (
-              <>
-                <span>Secure Sign In</span>
-                <ArrowRight size={14} />
-              </>
+            {error && (
+              <p className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
+              </p>
             )}
-          </button>
-        </form>
 
-        {/* Form Footer Switcher */}
-        <div className="text-center mt-6 pt-5 border-t border-gray-100">
-          <p className="text-xs text-gray-500">
-            Don't have an account?{" "}
-            <Link to="/register" className="font-bold text-red-500 hover:text-red-600 transition-colors ml-1">
-              Register Here
+            <button
+              type="submit"
+              disabled={loading}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-neutral-950 px-6 py-4 text-sm font-bold text-white transition hover:bg-red-600 disabled:opacity-50"
+            >
+              {loading ? "Authenticating..." : "Secure sign in"}
+              {!loading && <ArrowRight size={16} />}
+            </button>
+          </form>
+
+          <p className="mt-5 text-sm text-neutral-500">
+            New here?{" "}
+            <Link to="/register" className="font-bold text-red-600">
+              Create account
             </Link>
           </p>
         </div>
       </div>
 
-      {/* Welcome Popup Trigger Handle */}
       <WelcomePopup isOpen={showPopup} onClose={() => setShowPopup(false)} />
     </div>
   );

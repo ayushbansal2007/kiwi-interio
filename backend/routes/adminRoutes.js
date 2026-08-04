@@ -5,6 +5,7 @@ const User = require("../models/userModel");
 const Chat = require("../models/chatModel");
 const Query = require("../models/Query");
 const Interior = require("../models/InteriorModel");
+const Order = require("../models/Order");
 const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
 
@@ -87,6 +88,77 @@ router.get("/users", async (req, res) => {
       { $limit: limit },
     ]);
     res.json({ success: true, data: users });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.get("/orders", async (req, res) => {
+  try {
+    const limit = safeLimit(req.query.limit, 50);
+    const orders = await Order.find()
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .populate("userId", "name email number role")
+      .lean();
+
+    const summary = await Order.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          totalRevenue: {
+            $sum: {
+              $cond: [{ $eq: ["$paymentStatus", "paid"] }, "$totalAmount", 0],
+            },
+          },
+          paidOrders: {
+            $sum: { $cond: [{ $eq: ["$paymentStatus", "paid"] }, 1, 0] },
+          },
+          pendingPayments: {
+            $sum: { $cond: [{ $eq: ["$paymentStatus", "pending"] }, 1, 0] },
+          },
+        },
+      },
+    ]);
+
+    const paymentMethodBreakdown = await Order.aggregate([
+      { $group: { _id: "$paymentMethod", count: { $sum: 1 }, amount: { $sum: "$totalAmount" } } },
+      { $sort: { count: -1 } },
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        orders,
+        summary: summary[0] || {
+          totalOrders: 0,
+          totalRevenue: 0,
+          paidOrders: 0,
+          pendingPayments: 0,
+        },
+        paymentMethodBreakdown,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.patch("/orders/:orderId/status", async (req, res) => {
+  try {
+    const { orderStatus, paymentStatus } = req.body;
+    const order = await Order.findById(req.params.orderId);
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    if (orderStatus) order.orderStatus = orderStatus;
+    if (paymentStatus) order.paymentStatus = paymentStatus;
+    await order.save();
+
+    res.json({ success: true, data: order });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
