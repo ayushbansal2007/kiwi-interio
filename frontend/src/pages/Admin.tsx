@@ -6,6 +6,7 @@ import useAuth from "../hooks/useAuth";
 import { apiClient } from "../services/apiClient";
 import AdminAnalytics from "./AdminAnalytics";
 import AdminPayments from "./AdminPayments";
+import AdminSupportDesk from "./AdminSupportDesk";
 
 interface Interior {
   _id: string;
@@ -18,6 +19,8 @@ interface Interior {
   tags: string[]; // Strict RAG Matrix Array format
   roomType: string;
   price: number;
+  inStock?: boolean;
+  stockCount?: number;
 }
 
 function Admin() {
@@ -47,7 +50,7 @@ const [interiors, setInteriors] = useState<Interior[]>([]);
 const [loadingId, setLoadingId] = useState<string | null>(null);
 const [successId, setSuccessId] = useState<string | null>(null);
 
-const [currentView, setCurrentView] = useState<"analytics" | "catalog" | "queries" | "payments">(
+const [currentView, setCurrentView] = useState<"analytics" | "catalog" | "queries" | "payments" | "support">(
   finalRole === "hr" ? "queries" : "analytics"
 );
 
@@ -211,7 +214,7 @@ const filteredInteriors =
         </header>
 
         {/* NAVIGATION TAB BAR */}
-        {(finalRole === "admin" || finalRole === "hr") && (
+        {(finalRole === "admin" || finalRole === "hr" || finalRole === "manager") && (
           <div className="flex gap-3 mb-6 border-b border-neutral-200 pb-5 overflow-x-auto scaffolding-scroll">
             <button
               onClick={() => setCurrentView("analytics")}
@@ -220,6 +223,16 @@ const filteredInteriors =
               }`}
             >
               Intelligence
+            </button>
+            <button
+              onClick={() => setCurrentView("support")}
+              className={`text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-md transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                currentView === "support"
+                  ? "bg-red-600 text-white shadow-sm"
+                  : "bg-white text-neutral-500 border border-neutral-200 hover:text-neutral-900 hover:border-neutral-400"
+              }`}
+            >
+              <span>💬</span> Live Support Desk
             </button>
             {finalRole === "admin" && <button
               onClick={() => setCurrentView("catalog")}
@@ -257,6 +270,8 @@ const filteredInteriors =
         {/* ACCESS ROUTER RENDERING */}
         {currentView === "analytics" ? (
           <AdminAnalytics />
+        ) : currentView === "support" ? (
+          <AdminSupportDesk />
         ) : currentView === "payments" ? (
           <AdminPayments />
         ) : currentView === "queries" ? (
@@ -317,6 +332,19 @@ const filteredInteriors =
                         (e.target as HTMLImageElement).src = "https://placehold.co/600x400?text=Invalid+Image+URL";
                       }}
                     />
+                    <div className="absolute top-3 left-3">
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider shadow-sm ${
+                          item.inStock !== false && (item.stockCount ?? 10) > 0
+                            ? "bg-emerald-600 text-white"
+                            : "bg-red-600 text-white"
+                        }`}
+                      >
+                        {item.inStock !== false && (item.stockCount ?? 10) > 0
+                          ? "In Stock"
+                          : "Out of Stock"}
+                      </span>
+                    </div>
                     <div className="absolute top-3 right-3 bg-neutral-950/90 backdrop-blur-xs text-white px-2.5 py-1 rounded text-[9px] font-bold uppercase tracking-wider shadow-sm">
                       {item.roomType || "General"}
                     </div>
@@ -335,6 +363,48 @@ const filteredInteriors =
                           className="w-full border border-neutral-200 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 rounded px-3 py-1.5 transition-all outline-none text-sm font-semibold text-neutral-900"
                           onChange={(e) => handleInputChange(item._id, "title", e.target.value)}
                         />
+                      </div>
+
+                      {/* Stock & Inventory Control */}
+                      <div className="rounded-xl border border-neutral-200 bg-[#fffaf6] p-3">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] font-bold uppercase text-neutral-500 tracking-wider">
+                            Stock Status & Inventory
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleInputChange(
+                                item._id,
+                                "inStock",
+                                item.inStock === false ? true : false
+                              )
+                            }
+                            className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider transition ${
+                              item.inStock !== false
+                                ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                                : "bg-red-100 text-red-800 hover:bg-red-200"
+                            }`}
+                          >
+                            {item.inStock !== false ? "✓ Available" : "✗ Out of Stock"}
+                          </button>
+                        </div>
+                        <div className="mt-2.5 flex items-center justify-between gap-3 text-xs">
+                          <span className="text-neutral-500 font-medium">Available Units:</span>
+                          <input
+                            type="number"
+                            min="0"
+                            value={item.stockCount ?? 10}
+                            onChange={(e) => {
+                              const count = Math.max(0, Number(e.target.value) || 0);
+                              handleInputChange(item._id, "stockCount", count);
+                              if (count === 0) {
+                                handleInputChange(item._id, "inStock", false);
+                              }
+                            }}
+                            className="w-20 rounded border border-neutral-300 bg-white px-2 py-1 text-right text-xs font-bold text-neutral-900 outline-none"
+                          />
+                        </div>
                       </div>
 
                       {/* Image Resource Link */}

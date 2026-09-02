@@ -117,3 +117,20 @@ export const getProfile = async (accessToken: string) => {
 
   return await response.json();
 };
+
+export const updateProfile = async (
+  accessToken: string,
+  data: { name?: string; number?: string; avatar?: string }
+) => {
+  const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+
+  return await response.json();
+};

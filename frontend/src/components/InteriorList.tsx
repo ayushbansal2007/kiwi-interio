@@ -2,10 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import type { ReactElement } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, ShoppingBag } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 import useAuth from "../hooks/useAuth";
 import { apiClient } from "../services/apiClient";
 import { addToCart } from "../services/commerceService";
+
+import { onStockUpdated } from "../services/socket";
 
 interface Interior {
   _id: string;
@@ -18,6 +21,8 @@ interface Interior {
   style: string;
   roomType: string;
   tags: string[];
+  inStock?: boolean;
+  stockCount?: number;
 }
 
 function InteriorList(): ReactElement {
@@ -47,6 +52,25 @@ function InteriorList(): ReactElement {
       }
     };
     void fetchInteriors();
+
+    // Listen for real-time stock updates
+    const unsubStock = onStockUpdated((stockData) => {
+      setInteriors((prev) =>
+        prev.map((item) =>
+          item._id === stockData.interiorId
+            ? {
+                ...item,
+                inStock: stockData.inStock,
+                stockCount: stockData.stockCount,
+              }
+            : item
+        )
+      );
+    });
+
+    return () => {
+      unsubStock();
+    };
   }, [API_BASE_URL]);
 
   const categories = useMemo(() => ["All", ...new Set(interiors.map((item) => item.category))], [interiors]);
@@ -127,48 +151,125 @@ function InteriorList(): ReactElement {
           </div>
         ) : (
           <>
-            <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-              {visibleInteriors.map((item) => (
-                <article key={item._id} className="group overflow-hidden rounded-[30px] border border-neutral-200/70 bg-white p-3 shadow-[0_16px_40px_-32px_rgba(0,0,0,0.45)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_26px_60px_-34px_rgba(0,0,0,0.38)]">
-                  <div className="relative overflow-hidden rounded-[24px] bg-neutral-100">
-                    <img src={item.image} alt={item.title} className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-105" />
-                    <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-                      <span className="rounded-full bg-white/95 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-red-600">{item.category}</span>
-                      {item.style && <span className="rounded-full bg-neutral-950/85 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white">{item.style}</span>}
-                    </div>
-                  </div>
+            <motion.div
+              layout
+              className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4"
+            >
+              <AnimatePresence>
+                {visibleInteriors.map((item, idx) => {
+                  const isOutOfStock =
+                    item.inStock === false || (item.stockCount ?? 10) <= 0;
 
-                  <div className="px-1 pb-1 pt-5">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">{item.roomType || item.subcategory || "Interior concept"}</p>
-                    <Link to={`/interior/${item._id}`} className="mt-2 block text-xl font-black tracking-[-0.04em] text-neutral-950 transition hover:text-red-600">
-                      {item.title}
-                    </Link>
-                    <p className="mt-2 line-clamp-2 text-sm leading-6 text-neutral-500">{item.description}</p>
+                  return (
+                    <motion.article
+                      key={item._id}
+                      layout
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.35, delay: (idx % 8) * 0.05 }}
+                      className="group overflow-hidden rounded-[30px] border border-neutral-200/70 bg-white p-3 shadow-[0_16px_40px_-32px_rgba(0,0,0,0.45)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_26px_60px_-34px_rgba(0,0,0,0.38)]"
+                    >
+                      <div className="relative overflow-hidden rounded-[24px] bg-neutral-100">
+                        <img
+                          src={item.image}
+                          alt={item.title}
+                          className={`aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-105 ${
+                            isOutOfStock ? "grayscale-[40%] opacity-90" : ""
+                          }`}
+                        />
+                        <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+                          <span className="rounded-full bg-white/95 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-red-600">
+                            {item.category}
+                          </span>
+                          {item.style && (
+                            <span className="rounded-full bg-neutral-950/85 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white">
+                              {item.style}
+                            </span>
+                          )}
+                        </div>
 
-                    <div className="mt-5 flex items-end justify-between">
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">Starting price</p>
-                        <p className="mt-1 text-2xl font-black tracking-[-0.05em] text-neutral-950">₹{item.price.toLocaleString("en-IN")}</p>
+                        {isOutOfStock && (
+                          <div className="absolute right-4 top-4">
+                            <span className="rounded-full bg-red-600 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white shadow-md">
+                              Out of stock
+                            </span>
+                          </div>
+                        )}
                       </div>
-                      <Link to={`/interior/${item._id}`} className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-red-600">
-                        View
-                        <ArrowRight size={14} />
-                      </Link>
-                    </div>
 
-                    <div className="mt-5 grid grid-cols-2 gap-3">
-                      <button onClick={() => handleAddToCart(item._id)} disabled={actionId === item._id} className="inline-flex items-center justify-center gap-2 rounded-full border border-neutral-200 px-4 py-3 text-xs font-bold uppercase tracking-wider text-neutral-800 transition hover:border-red-200 hover:text-red-600 disabled:opacity-50">
-                        <ShoppingBag size={14} />
-                        {actionId === item._id ? "Adding..." : "Add to cart"}
-                      </button>
-                      <button onClick={() => navigate(`/checkout?source=buy_now&id=${item._id}&quantity=1`)} className="rounded-full bg-neutral-950 px-4 py-3 text-xs font-bold uppercase tracking-wider text-white transition hover:bg-red-600">
-                        Buy now
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
+                      <div className="px-1 pb-1 pt-5">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">
+                          {item.roomType || item.subcategory || "Interior concept"}
+                        </p>
+                        <Link
+                          to={`/interior/${item._id}`}
+                          className="mt-2 block text-xl font-black tracking-[-0.04em] text-neutral-950 transition hover:text-red-600"
+                        >
+                          {item.title}
+                        </Link>
+                        <p className="mt-2 line-clamp-2 text-sm leading-6 text-neutral-500">
+                          {item.description}
+                        </p>
+
+                        <div className="mt-5 flex items-end justify-between">
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">
+                              Starting price
+                            </p>
+                            <p className="mt-1 text-2xl font-black tracking-[-0.05em] text-neutral-950">
+                              ₹{item.price.toLocaleString("en-IN")}
+                            </p>
+                          </div>
+                          <Link
+                            to={`/interior/${item._id}`}
+                            className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-red-600"
+                          >
+                            View
+                            <ArrowRight size={14} />
+                          </Link>
+                        </div>
+
+                        <div className="mt-5 grid grid-cols-2 gap-3">
+                          <button
+                            onClick={() => handleAddToCart(item._id)}
+                            disabled={actionId === item._id || isOutOfStock}
+                            className={`inline-flex items-center justify-center gap-2 rounded-full border px-4 py-3 text-xs font-bold uppercase tracking-wider transition ${
+                              isOutOfStock
+                                ? "border-neutral-200 bg-neutral-100 text-neutral-400 cursor-not-allowed"
+                                : "border-neutral-200 text-neutral-800 hover:border-red-200 hover:text-red-600 disabled:opacity-50"
+                            }`}
+                          >
+                            <ShoppingBag size={14} />
+                            {isOutOfStock
+                              ? "Out of stock"
+                              : actionId === item._id
+                              ? "Adding..."
+                              : "Add to cart"}
+                          </button>
+                          <button
+                            onClick={() =>
+                              !isOutOfStock &&
+                              navigate(
+                                `/checkout?source=buy_now&id=${item._id}&quantity=1`
+                              )
+                            }
+                            disabled={isOutOfStock}
+                            className={`rounded-full px-4 py-3 text-xs font-bold uppercase tracking-wider text-white transition ${
+                              isOutOfStock
+                                ? "bg-neutral-300 cursor-not-allowed text-neutral-500"
+                                : "bg-neutral-950 hover:bg-red-600"
+                            }`}
+                          >
+                            {isOutOfStock ? "Unavailable" : "Buy now"}
+                          </button>
+                        </div>
+                      </div>
+                    </motion.article>
+                  );
+                })}
+              </AnimatePresence>
+            </motion.div>
 
             {visibleCount < filteredInteriors.length && (
               <div className="mt-14 flex justify-center">

@@ -83,7 +83,12 @@ function Register() {
                     throw new Error(data.message || "Google sign-in failed");
                   }
                   login(data.accessToken, data.user, data.refreshToken);
-                  navigate("/profile");
+
+                  if (!data.user.number || data.requiresProfileCompletion) {
+                    navigate("/complete-profile");
+                  } else {
+                    navigate("/profile");
+                  }
                 } catch (err) {
                   setError(err instanceof Error ? err.message : "Google sign-in failed");
                 } finally {

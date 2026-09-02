@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { BadgeCheck, ShieldCheck, ShoppingBag, Sparkles, Truck } from "lucide-react";
+import { AlertCircle, BadgeCheck, ShieldCheck, ShoppingBag, Sparkles, Truck } from "lucide-react";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 import useAuth from "../hooks/useAuth";
 import { apiClient } from "../services/apiClient";
 import { addToCart } from "../services/commerceService";
+import { onStockUpdated } from "../services/socket";
 
 interface Interior {
   _id: string;
@@ -18,6 +19,8 @@ interface Interior {
   style: string;
   roomType: string;
   tags: string[];
+  inStock?: boolean;
+  stockCount?: number;
 }
 
 function InteriorDetailPage(): ReactElement {
@@ -51,6 +54,24 @@ function InteriorDetailPage(): ReactElement {
     };
 
     void fetchSingleInterior();
+
+    const unsubStock = onStockUpdated((stockData) => {
+      if (stockData.interiorId === id) {
+        setInterior((prev) =>
+          prev
+            ? {
+                ...prev,
+                inStock: stockData.inStock,
+                stockCount: stockData.stockCount,
+              }
+            : prev
+        );
+      }
+    });
+
+    return () => {
+      unsubStock();
+    };
   }, [API_BASE_URL, id]);
 
   const quickSpecs = useMemo(
@@ -124,8 +145,26 @@ function InteriorDetailPage(): ReactElement {
             <p className="mt-4 text-sm leading-7 text-neutral-500 sm:text-base">{interior.description}</p>
 
             <div className="mt-6 rounded-[28px] bg-[#fffaf6] p-5 ring-1 ring-neutral-100">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">Starting project price</p>
-              <p className="mt-2 text-4xl font-black tracking-[-0.06em] text-neutral-950">₹{interior.price.toLocaleString("en-IN")}</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">Starting project price</p>
+                  <p className="mt-1 text-4xl font-black tracking-[-0.06em] text-neutral-950">₹{interior.price.toLocaleString("en-IN")}</p>
+                </div>
+                <div>
+                  {interior.inStock !== false && (interior.stockCount ?? 10) > 0 ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-emerald-700 ring-1 ring-emerald-200">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                      In Stock ({interior.stockCount ?? 10} available)
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-red-700 ring-1 ring-red-200">
+                      <span className="h-2 w-2 rounded-full bg-red-500" />
+                      Out of Stock
+                    </span>
+                  )}
+                </div>
+              </div>
+
               <div className="mt-4 flex flex-wrap gap-3 text-xs text-neutral-500">
                 <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 ring-1 ring-neutral-100"><ShieldCheck size={14} className="text-emerald-500" /> Secure booking</span>
                 <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 ring-1 ring-neutral-100"><Truck size={14} className="text-sky-500" /> Free consultation</span>
@@ -135,13 +174,48 @@ function InteriorDetailPage(): ReactElement {
 
             {notice && <p className="mt-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{notice}</p>}
 
+            {interior.inStock === false || (interior.stockCount ?? 10) <= 0 ? (
+              <div className="mt-6 rounded-2xl border border-red-200 bg-red-50/80 p-4 text-xs text-red-800">
+                <p className="font-bold">This design layout is temporarily out of stock for immediate delivery.</p>
+                <p className="mt-1 text-red-600">You can still consult with our studio team via the AI assistant or dashboard chat.</p>
+              </div>
+            ) : null}
+
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <button onClick={handleAddToCart} disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-full border border-neutral-200 px-5 py-3.5 text-sm font-bold text-neutral-800 transition hover:border-red-200 hover:text-red-600 disabled:opacity-50">
+              <button
+                onClick={handleAddToCart}
+                disabled={busy || interior.inStock === false || (interior.stockCount ?? 10) <= 0}
+                className={`inline-flex items-center justify-center gap-2 rounded-full border px-5 py-3.5 text-sm font-bold transition ${
+                  interior.inStock === false || (interior.stockCount ?? 10) <= 0
+                    ? "border-neutral-200 bg-neutral-100 text-neutral-400 cursor-not-allowed"
+                    : "border-neutral-200 text-neutral-800 hover:border-red-200 hover:text-red-600 disabled:opacity-50"
+                }`}
+              >
                 <ShoppingBag size={16} />
-                {busy ? "Adding..." : "Add to cart"}
+                {interior.inStock === false || (interior.stockCount ?? 10) <= 0
+                  ? "Out of Stock"
+                  : busy
+                  ? "Adding..."
+                  : "Add to cart"}
               </button>
-              <button onClick={() => navigate(`/checkout?source=buy_now&id=${interior._id}&quantity=1`)} className="rounded-full bg-neutral-950 px-5 py-3.5 text-sm font-bold text-white transition hover:bg-red-600">
-                Buy now
+              <button
+                onClick={() =>
+                  interior.inStock !== false &&
+                  (interior.stockCount ?? 10) > 0 &&
+                  navigate(
+                    `/checkout?source=buy_now&id=${interior._id}&quantity=1`
+                  )
+                }
+                disabled={interior.inStock === false || (interior.stockCount ?? 10) <= 0}
+                className={`rounded-full px-5 py-3.5 text-sm font-bold text-white transition ${
+                  interior.inStock === false || (interior.stockCount ?? 10) <= 0
+                    ? "bg-neutral-300 cursor-not-allowed text-neutral-500"
+                    : "bg-neutral-950 hover:bg-red-600"
+                }`}
+              >
+                {interior.inStock === false || (interior.stockCount ?? 10) <= 0
+                  ? "Unavailable"
+                  : "Buy now"}
               </button>
             </div>
           </div>

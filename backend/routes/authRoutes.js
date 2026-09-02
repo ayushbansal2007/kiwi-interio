@@ -28,19 +28,34 @@ const getConfiguredRole = (email) => {
   return null;
 };
 
-const sendAuthResponse = (res, user, statusCode = 200, message = "Success") => {
+const sendAuthResponse = (
+  res,
+  user,
+  statusCode = 200,
+  message = "Success",
+  isNewUser = false
+) => {
   const { accessToken, refreshToken } = issueAuthTokens(user);
   setRefreshCookie(res, refreshToken);
 
-  return res.json({
-  accessToken,
-  user: {
-    _id: user._id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-  },
-});
+  const hasPhoneNumber = Boolean(user.number && user.number.trim().length > 0);
+
+  return res.status(statusCode).json({
+    message,
+    accessToken,
+    refreshToken,
+    isNewUser,
+    requiresProfileCompletion: !hasPhoneNumber,
+    user: {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      number: user.number || "",
+      role: user.role,
+      avatar: user.avatar || "",
+      authProvider: user.authProvider || "local",
+    },
+  });
 };
 
 // ---------------- REGISTER ----------------
@@ -60,12 +75,12 @@ router.post("/register", registerLimiter, async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      number,
+      number: number ? String(number).trim() : "",
       role,
       authProvider: "local",
     });
 
-    return sendAuthResponse(res, newUser, 201, "User registered successfully");
+    return sendAuthResponse(res, newUser, 201, "User registered successfully", true);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -100,7 +115,7 @@ router.post("/login", loginLimiter, async (req, res) => {
     user.lastLoginAt = new Date();
     await user.save();
 
-    return sendAuthResponse(res, user, 200, "Login successful");
+    return sendAuthResponse(res, user, 200, "Login successful", false);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -138,8 +153,10 @@ router.post("/google", loginLimiter, async (req, res) => {
 
     let user = await User.findOne({ $or: [{ googleId }, { email }] });
     const configuredRole = getConfiguredRole(email);
+    let isNewUser = false;
 
     if (!user) {
+      isNewUser = true;
       user = await User.create({
         name,
         email,
@@ -162,7 +179,13 @@ router.post("/google", loginLimiter, async (req, res) => {
     user.lastLoginAt = new Date();
     await user.save();
 
-    return sendAuthResponse(res, user, 200, "Google login successful");
+    return sendAuthResponse(
+      res,
+      user,
+      200,
+      isNewUser ? "Google sign-up successful" : "Google login successful",
+      isNewUser
+    );
   } catch (error) {
     res.status(401).json({ message: "Google authentication failed" });
   }
@@ -203,9 +226,50 @@ router.post("/refresh", async (req, res) => {
 router.get("/profile", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
     res.json(user);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+router.put("/profile", authMiddleware, async (req, res) => {
+  try {
+    const { name, number, avatar } = req.body;
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    if (name && typeof name === "string") {
+      user.name = name.trim();
+    }
+    if (typeof number === "string") {
+      user.number = number.trim();
+    }
+    if (avatar && typeof avatar === "string") {
+      user.avatar = avatar.trim();
+    }
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Profile updated successfully",
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        number: user.number || "",
+        role: user.role,
+        avatar: user.avatar || "",
+        authProvider: user.authProvider || "local",
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 

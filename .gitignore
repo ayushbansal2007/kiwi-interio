@@ -29,4 +29,6 @@ dist-ssr
 .env.*
 backend/.env
 frontend/.env
+backend/.dockerignore
+backend/dockerfile
 

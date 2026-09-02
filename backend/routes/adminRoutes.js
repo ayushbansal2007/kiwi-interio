@@ -147,16 +147,49 @@ router.get("/orders", async (req, res) => {
 
 router.patch("/orders/:orderId/status", async (req, res) => {
   try {
-    const { orderStatus, paymentStatus } = req.body;
+    const { orderStatus, paymentStatus, cancellationReason } = req.body;
     const order = await Order.findById(req.params.orderId);
 
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    if (orderStatus) order.orderStatus = orderStatus;
-    if (paymentStatus) order.paymentStatus = paymentStatus;
+    if (orderStatus) {
+      order.orderStatus = orderStatus;
+      if (orderStatus === "cancelled") {
+        order.cancellationReason =
+          (cancellationReason && String(cancellationReason).trim()) ||
+          "Order cancelled by Kiwi team";
+        order.cancelledBy = "admin";
+        order.cancelledAt = new Date();
+      } else {
+        // If order was revived/confirmed
+        if (order.orderStatus !== "cancelled") {
+          order.cancellationReason = "";
+          order.cancelledBy = "";
+          order.cancelledAt = null;
+        }
+      }
+    }
+
+    if (paymentStatus) {
+      order.paymentStatus = paymentStatus;
+    }
+
     await order.save();
+
+    // Broadcast live WebSocket event to the user
+    const io = req.app.get("io");
+    if (io) {
+      io.to(`user:${order.userId}`).emit("order_status_updated", {
+        orderId: order._id,
+        orderStatus: order.orderStatus,
+        paymentStatus: order.paymentStatus,
+        cancellationReason: order.cancellationReason,
+        cancelledBy: order.cancelledBy,
+        cancelledAt: order.cancelledAt,
+      });
+    }
 
     res.json({ success: true, data: order });
   } catch (error) {
@@ -175,6 +208,44 @@ router.get("/users/:userId/conversations", async (req, res) => {
       .lean();
 
     res.json({ success: true, data: chats.reverse() });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Admin sends message directly to a user
+router.post("/users/:userId/message", async (req, res) => {
+  try {
+    const { message, category } = req.body;
+    const userId = req.params.userId;
+
+    if (!message || String(message).trim() === "") {
+      return res.status(400).json({ success: false, message: "Message cannot be empty" });
+    }
+
+    const newChat = await Chat.create({
+      userId,
+      role: "admin",
+      message: String(message).trim(),
+      data: category ? { category } : null,
+    });
+
+    const chatPayload = {
+      _id: newChat._id,
+      userId,
+      role: newChat.role,
+      message: newChat.message,
+      data: newChat.data,
+      createdAt: newChat.createdAt,
+    };
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to(`user:${userId}`).emit("new_message", chatPayload);
+      io.to("admin_room").emit("new_message", chatPayload);
+    }
+
+    res.json({ success: true, data: chatPayload });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

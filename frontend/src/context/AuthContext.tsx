@@ -15,7 +15,7 @@ import {
 
 import { setAccessToken as setApiAccessToken } from "../services/apiClient";
 
-interface User {
+export interface User {
   _id: string;
   name: string;
   email: string;
@@ -25,7 +25,7 @@ interface User {
   authProvider?: string;
 }
 
-interface AuthContextType {
+export interface AuthContextType {
   user: User | null;
   accessToken: string | null;
   loading: boolean;
@@ -35,6 +35,8 @@ interface AuthContextType {
     user: User,
     refreshToken?: string
   ) => void;
+
+  updateUser: (userData: Partial<User>) => void;
 
   logout: () => Promise<void>;
 }
@@ -105,6 +107,15 @@ export const AuthProvider = ({
     }
 
     scheduleTokenRefresh();
+  };
+
+  const updateUser = (userData: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return null;
+      const updated = { ...prev, ...userData };
+      localStorage.setItem("user", JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const logout = async () => {
@@ -179,6 +190,7 @@ export const AuthProvider = ({
         accessToken,
         loading,
         login,
+        updateUser,
         logout,
       }}
     >

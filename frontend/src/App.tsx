@@ -15,6 +15,7 @@ import InteriorDetailPage from "./pages/InteriorDetailPage";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import Register from "./pages/Register";
+import CompleteProfile from "./pages/CompleteProfile";
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
 
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/complete-profile" element={<CompleteProfile />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/interiors" element={<InteriorList />} />

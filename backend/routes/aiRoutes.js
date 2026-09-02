@@ -122,16 +122,37 @@ router.post("/ai", authmiddleware, async (req, res) => {
       },
     ];
 
-    // ---------------- 6. AI RESPONSE WITH STRUCTURAL ENFORCEMENT ----------------
-    const response = await retryWithBackoff(() =>
-      client.chat.completions.create({
-        model: modelConfig.model,
-        messages,
-        temperature: modelConfig.temperature,
-        max_tokens: modelConfig.maxTokens,
-        response_format: { type: "json_object" } 
-      })
-    );
+    // ---------------- 6. AI RESPONSE WITH MODEL FALLBACK & STRUCTURAL ENFORCEMENT ----------------
+    let response;
+    let lastError;
+    const candidateModels = [
+      modelConfig.model,
+      ...(modelConfig.fallbackModels || []).filter((m) => m !== modelConfig.model),
+    ];
+
+    for (const currentModel of candidateModels) {
+      try {
+        response = await retryWithBackoff(() =>
+          client.chat.completions.create({
+            model: currentModel,
+            messages,
+            temperature: modelConfig.temperature,
+            max_tokens: modelConfig.maxTokens,
+            response_format: { type: "json_object" },
+          })
+        );
+        if (response && response.choices && response.choices[0]) {
+          break;
+        }
+      } catch (err) {
+        console.warn(`⚠️ Model ${currentModel} failed:`, err.message);
+        lastError = err;
+      }
+    }
+
+    if (!response) {
+      throw lastError || new Error("All AI models failed to respond");
+    }
 
     let aiReply = response.choices[0].message.content;
     console.log("AI RAW RESPONSE:", aiReply);

@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  AlertTriangle,
   CreditCard,
   IndianRupee,
   RefreshCw,
   Wallet,
+  X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { apiClient } from "../services/apiClient";
@@ -14,8 +16,12 @@ type OrderRecord = {
   paymentMethod: string;
   paymentStatus: string;
   orderStatus: string;
+  cancellationReason?: string;
+  cancelledBy?: string;
+  cancelledAt?: string;
   createdAt: string;
   userId?: {
+    _id?: string;
     name?: string;
     email?: string;
     number?: string;
@@ -61,28 +67,32 @@ const paymentLabels: Record<string, string> = {
 };
 
 export default function AdminPayments() {
-  const [payload, setPayload] =
-    useState<PaymentsPayload | null>(null);
+  const [payload, setPayload] = useState<PaymentsPayload | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
 
-  const [loading, setLoading] =
-    useState(true);
+  // Cancel order modal state
+  const [cancellingOrder, setCancellingOrder] = useState<OrderRecord | null>(null);
+  const [cancelReasonPreset, setCancelReasonPreset] = useState("Product / Material out of stock");
+  const [customReason, setCustomReason] = useState("");
+  const [cancelSubmitting, setCancelSubmitting] = useState(false);
 
-  const [refreshing, setRefreshing] =
-    useState(false);
-
-  const [error, setError] =
-    useState("");
+  const presetReasons = [
+    "Product / Material out of stock",
+    "Delivery address unserviceable / invalid pincode",
+    "Customer requested cancellation via call/chat",
+    "Failed quality check during production",
+    "Payment verification / duplicate order issue",
+    "Other (Type below)",
+  ];
 
   const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL ||
-    "https://kiwi-interio.onrender.com";
+    import.meta.env.VITE_API_BASE_URL || "https://kiwi-interio.onrender.com";
 
   const loadPayments = useCallback(
     async (isRefresh = false) => {
-      isRefresh
-        ? setRefreshing(true)
-        : setLoading(true);
-
+      isRefresh ? setRefreshing(true) : setLoading(true);
       setError("");
 
       try {
@@ -90,22 +100,16 @@ export default function AdminPayments() {
           `${API_BASE_URL}/api/admin/orders?limit=50`
         );
 
-        const data =
-          await response.json();
+        const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            data.message ||
-              "Could not load payment data"
-          );
+          throw new Error(data.message || "Could not load payment data");
         }
 
         setPayload(data.data);
       } catch (err) {
         setError(
-          err instanceof Error
-            ? err.message
-            : "Could not load payment data"
+          err instanceof Error ? err.message : "Could not load payment data"
         );
       } finally {
         setLoading(false);
@@ -119,57 +123,73 @@ export default function AdminPayments() {
     void loadPayments();
   }, [loadPayments]);
 
-  const updateOrderStatus =
-    async (
-      orderId: string,
-      patch: {
-        orderStatus?: string;
-        paymentStatus?: string;
+  const updateOrderStatus = async (
+    orderId: string,
+    patch: {
+      orderStatus?: string;
+      paymentStatus?: string;
+      cancellationReason?: string;
+    }
+  ) => {
+    const response = await apiClient(
+      `${API_BASE_URL}/api/admin/orders/${orderId}/status`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(patch),
       }
-    ) => {
-      const response =
-        await apiClient(
-          `${API_BASE_URL}/api/admin/orders/${orderId}/status`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-            body: JSON.stringify(
-              patch
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Could not update order");
+    }
+
+    setPayload((current) =>
+      current
+        ? {
+            ...current,
+            orders: current.orders.map((order) =>
+              order._id === orderId
+                ? {
+                    ...order,
+                    ...patch,
+                  }
+                : order
             ),
           }
-        );
+        : current
+    );
+  };
 
-      const data =
-        await response.json();
+  const handleCancelSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cancellingOrder) return;
 
-      if (!response.ok) {
-        throw new Error(
-          data.message ||
-            "Could not update order"
-        );
-      }
+    const finalReason =
+      cancelReasonPreset === "Other (Type below)"
+        ? customReason.trim() || "Order cancelled by Kiwi admin"
+        : customReason.trim()
+        ? `${cancelReasonPreset}: ${customReason.trim()}`
+        : cancelReasonPreset;
 
-      setPayload((current) =>
-        current
-          ? {
-              ...current,
-              orders:
-                current.orders.map(
-                  (order) =>
-                    order._id === orderId
-                      ? {
-                          ...order,
-                          ...patch,
-                        }
-                      : order
-                ),
-            }
-          : current
-      );
-    };
+    setCancelSubmitting(true);
+    try {
+      await updateOrderStatus(cancellingOrder._id, {
+        orderStatus: "cancelled",
+        cancellationReason: finalReason,
+      });
+      setCancellingOrder(null);
+      setCustomReason("");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to cancel order");
+    } finally {
+      setCancelSubmitting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -349,15 +369,38 @@ export default function AdminPayments() {
                   {order.paymentStatus}
                 </span>
 
-                <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+                <span
+                  className={`rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider ${
+                    order.orderStatus === "cancelled"
+                      ? "bg-red-100 text-red-700"
+                      : "bg-emerald-50 text-emerald-600"
+                  }`}
+                >
                   {order.orderStatus}
                 </span>
-
               </div>
             </div>
 
+            {/* Cancellation reason banner if cancelled */}
+            {order.orderStatus === "cancelled" && (
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50/80 p-3.5 text-xs text-red-900">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle size={15} className="mt-0.5 shrink-0 text-red-600" />
+                  <div>
+                    <span className="font-bold">Cancellation Reason: </span>
+                    <span>{order.cancellationReason || "No specific reason provided"}</span>
+                    {order.cancelledAt && (
+                      <span className="ml-2 text-[10px] text-red-500">
+                        ({new Date(order.cancelledAt).toLocaleString("en-IN")})
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="mt-4 flex flex-wrap gap-2">
-                          {order.paymentStatus === "pending" &&
+              {order.paymentStatus === "pending" &&
                 order.paymentMethod !== "razorpay" && (
                   <button
                     onClick={() =>
@@ -372,7 +415,7 @@ export default function AdminPayments() {
                   </button>
                 )}
 
-              {order.orderStatus !== "completed" && (
+              {order.orderStatus !== "completed" && order.orderStatus !== "cancelled" && (
                 <button
                   onClick={() =>
                     void updateOrderStatus(order._id, {
@@ -387,12 +430,12 @@ export default function AdminPayments() {
 
               {order.orderStatus !== "cancelled" && (
                 <button
-                  onClick={() =>
-                    void updateOrderStatus(order._id, {
-                      orderStatus: "cancelled",
-                    })
-                  }
-                  className="rounded-full border border-neutral-200 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-neutral-600 transition hover:bg-neutral-100"
+                  onClick={() => {
+                    setCancellingOrder(order);
+                    setCustomReason("");
+                    setCancelReasonPreset(presetReasons[0]);
+                  }}
+                  className="rounded-full border border-red-200 bg-red-50/50 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-red-700 transition hover:bg-red-100"
                 >
                   Cancel Order
                 </button>
@@ -428,6 +471,93 @@ export default function AdminPayments() {
           </article>
         ))}
       </section>
+
+      {/* ================= CANCEL ORDER MODAL ================= */}
+      {cancellingOrder && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/40 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="w-full max-w-lg rounded-3xl border border-neutral-200 bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <span className="grid h-10 w-10 place-items-center rounded-2xl bg-red-100 text-red-600">
+                  <AlertTriangle size={20} />
+                </span>
+                <div>
+                  <h3 className="text-lg font-black text-neutral-950">
+                    Cancel Order #{cancellingOrder._id.slice(-6)}
+                  </h3>
+                  <p className="text-xs text-neutral-500">
+                    Client: {cancellingOrder.userId?.name || "Customer"} (
+                    {currency.format(cancellingOrder.totalAmount)})
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setCancellingOrder(null)}
+                className="grid h-8 w-8 place-items-center rounded-full border border-neutral-200 text-neutral-500 hover:bg-neutral-100"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCancelSubmit} className="mt-6 space-y-4">
+              <div>
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-neutral-500">
+                  Select Reason for Cancellation
+                </label>
+                <select
+                  value={cancelReasonPreset}
+                  onChange={(e) => setCancelReasonPreset(e.target.value)}
+                  className="w-full rounded-2xl border border-neutral-200 bg-[#fffaf6] px-4 py-3 text-sm font-semibold text-neutral-900 outline-none"
+                >
+                  {presetReasons.map((reason) => (
+                    <option key={reason} value={reason}>
+                      {reason}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-neutral-500">
+                  Additional Note (Sent to Client Dashboard)
+                </label>
+                <textarea
+                  rows={3}
+                  value={customReason}
+                  onChange={(e) => setCustomReason(e.target.value)}
+                  placeholder="e.g. The requested velvet fabric is temporarily unavailable. Full refund initiated."
+                  className="w-full rounded-2xl border border-neutral-200 bg-[#fffaf6] px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-red-400 focus:bg-white"
+                />
+              </div>
+
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                ⚠️ This reason will be immediately visible on the customer's dashboard and sent via live notification.
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setCancellingOrder(null)}
+                  className="rounded-full border border-neutral-200 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-neutral-600 hover:bg-neutral-50"
+                >
+                  Go Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={cancelSubmitting}
+                  className="rounded-full bg-red-600 px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-md transition hover:bg-red-700 disabled:opacity-50"
+                >
+                  {cancelSubmitting ? "Cancelling..." : "Confirm Cancellation"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

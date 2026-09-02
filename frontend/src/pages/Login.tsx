@@ -23,12 +23,19 @@ function Login() {
     refreshToken?: string;
     user?: Parameters<typeof login>[1];
     message?: string;
+    requiresProfileCompletion?: boolean;
   }) => {
     if (!data.accessToken || !data.user) {
       throw new Error(data.message || "Invalid email or password");
     }
 
     login(data.accessToken, data.user, data.refreshToken);
+
+    if (!data.user.number || data.requiresProfileCompletion) {
+      navigate("/complete-profile");
+      return;
+    }
+
     setShowPopup(true);
 
     setTimeout(() => {

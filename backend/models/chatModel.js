@@ -16,9 +16,8 @@ const chatSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    // 🟢 FIXED: Dynamic Object schema field for layout metadata framework (Cards, Tools, Items)
     data: {
-      type: mongoose.Schema.Types.Mixed, // Mixed type se isme arrays, objects kuch bhi save ho sakega smoothly
+      type: mongoose.Schema.Types.Mixed,
       default: null,
     },
   },
@@ -27,4 +26,4 @@ const chatSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("Chat", chatSchema);
+module.exports = mongoose.models.Chat || mongoose.model("Chat", chatSchema);

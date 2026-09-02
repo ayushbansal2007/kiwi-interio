@@ -54,6 +54,14 @@ const InteriorSchema =
       type: Number,
       required: true,
     },
+    inStock: {
+      type: Boolean,
+      default: true,
+    },
+    stockCount: {
+      type: Number,
+      default: 10,
+    },
     embedding: {
     type: [Number],
     required: false, 
