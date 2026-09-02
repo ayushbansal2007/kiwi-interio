@@ -1,23 +1,25 @@
 import { useState } from "react";
+import { CheckCircle2, MessageSquare, Send, Sparkles, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 import { apiClient } from "../services/apiClient";
 
 function ContactQuery() {
-  useDocumentTitle("Get In Touch | Kiwi Interio");
-
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [ticketId, setTicketId] = useState<string | null>(null);
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://kiwi-interio.onrender.com";
+  const API_BASE_URL =
+    import.meta.env.VITE_API_BASE_URL || "https://kiwi-interio.onrender.com";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    loading || setLoading(true);
+    if (loading) return;
+    setLoading(true);
 
     try {
       const response = await apiClient(`${API_BASE_URL}/api/queries/submit`, {
@@ -31,15 +33,15 @@ function ContactQuery() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        setSuccess(true);
+        setTicketId(data.data?.ticketId || "KI-SUBMITTED");
         setName("");
         setEmail("");
         setPhone("");
         setMessage("");
         setTimeout(() => {
-          setSuccess(false);
+          setTicketId(null);
           setIsOpen(false);
-        }, 3500);
+        }, 4000);
       } else {
         alert(data.message || "Failed to submit query");
       }
@@ -52,116 +54,139 @@ function ContactQuery() {
   };
 
   return (
-    // 🟢 FIXED: Mobile pe bottom-20 (navbar ke upar) aur desktop pe bottom-6. z-index ko z-40 kiya taaki navbar (z-50) iske upar clean close ho sake
-    <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-40 font-sans text-black">
-      
-      {/* 🔴 CHATBOT STYLE TRIGGER BUTTON */}
-      <button
+    <div className="fixed bottom-20 right-4 z-40 md:bottom-6 md:right-6">
+      {/* Floating Trigger Button */}
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-black hover:bg-red-600 text-white px-4 py-3 sm:px-5 sm:py-3.5 rounded-full shadow-2xl flex items-center gap-2 transition-all transform hover:scale-105 active:scale-95 font-bold text-[10px] sm:text-xs uppercase tracking-widest"
+        className="flex items-center gap-2 rounded-full bg-neutral-950 px-4 py-3 text-xs font-bold uppercase tracking-wider text-white shadow-2xl ring-2 ring-white/30 transition hover:bg-red-600 sm:px-5 sm:py-3.5"
       >
         {isOpen ? (
           <>
+            <X size={15} />
             <span>Close</span>
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
           </>
         ) : (
           <>
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
             </span>
-            <span>Inquire Now</span>
+            <span>Free 3D Blueprint</span>
           </>
         )}
-      </button>
+      </motion.button>
 
-      {/* 🧾 FLOATING CONTACT QUERY PANEL */}
-      {isOpen && (
-        // 🟢 FIXED: `bottom-14 sm:bottom-16` spacing adjustments kiye taaki button ke thik upar pop-up khule aur text responsive handle ho
-        <div className="absolute bottom-14 sm:bottom-16 right-0 w-[calc(100vw-32px)] sm:w-[380px] max-h-[70vh] flex flex-col bg-white border border-stone-200 shadow-2xl rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
-          
-          {/* Top Branding Panel */}
-          <div className="bg-stone-950 text-white p-4 sm:p-5 shrink-0">
-            <p className="text-[9px] font-bold tracking-[0.3em] uppercase text-red-500 mb-1">
-              Connect With Studio
-            </p>
-            <h3 className="text-base sm:text-lg font-black uppercase tracking-tight">
-              Let's Shape Your Vision
-            </h3>
-            <p className="text-stone-400 text-[10px] sm:text-[11px] mt-0.5">
-              Drop your details. Our team will sync within 24 hours.
-            </p>
-          </div>
-
-          {/* Core Input Form */}
-          {/* 🟢 FIXED: Added `overflow-y-auto` taaki chhote mobile screens pe form cut na ho aur scroll ho sake */}
-          <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-3 sm:space-y-4 bg-stone-50/60 overflow-y-auto flex-1">
-            {success && (
-              <div className="bg-emerald-600 text-white p-2.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-center rounded-lg">
-                ✓ Workspace Concept Registered!
+      {/* Floating Modal Panel */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 15, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 15, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="absolute bottom-16 right-0 max-h-[80vh] w-[calc(100vw-32px)] overflow-hidden rounded-[32px] border border-neutral-200/80 bg-white shadow-2xl sm:w-[400px]"
+          >
+            {/* Modal Header */}
+            <div className="bg-neutral-950 p-6 text-white">
+              <div className="flex items-center gap-2">
+                <span className="grid h-7 w-7 place-items-center rounded-xl bg-red-600 text-white">
+                  <Sparkles size={14} />
+                </span>
+                <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-red-400">
+                  Direct Studio Desk
+                </p>
               </div>
-            )}
+              <h3 className="mt-2 text-xl font-black tracking-[-0.04em]">
+                Request Architectural Blueprint
+              </h3>
+              <p className="mt-1 text-xs text-neutral-400">
+                Share your space details. Our chief designer will contact you within 24 hours.
+              </p>
+            </div>
 
-            <div className="space-y-2.5 sm:space-y-3">
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="overflow-y-auto p-6 space-y-4 bg-[#fffaf6]">
+              {ticketId && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-center text-xs font-bold text-emerald-800"
+                >
+                  <CheckCircle2 size={24} className="mx-auto text-emerald-600 mb-1" />
+                  <p>Inquiry Registered Successfully!</p>
+                  <p className="mt-0.5 text-[10px] text-emerald-600">Ticket #{ticketId}</p>
+                </motion.div>
+              )}
+
               <div>
-                <label className="text-[9px] font-bold uppercase text-stone-400 tracking-wider block mb-0.5">Full Name</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block mb-1">
+                  Full Name
+                </label>
                 <input
                   type="text"
                   required
-                  className="w-full border-b border-stone-200 focus:border-black py-1 bg-transparent text-xs sm:text-sm outline-none transition-all"
+                  placeholder="e.g. Rahul Sharma"
+                  className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-2.5 text-xs text-neutral-900 outline-none transition focus:border-neutral-950"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                 />
               </div>
 
               <div>
-                <label className="text-[9px] font-bold uppercase text-stone-400 tracking-wider block mb-0.5">Email Address</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block mb-1">
+                  Email Address
+                </label>
                 <input
                   type="email"
                   required
-                  className="w-full border-b border-stone-200 focus:border-black py-1 bg-transparent text-xs sm:text-sm outline-none transition-all"
+                  placeholder="name@domain.com"
+                  className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-2.5 text-xs text-neutral-900 outline-none transition focus:border-neutral-950"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
 
               <div>
-                <label className="text-[9px] font-bold uppercase text-stone-400 tracking-wider block mb-0.5">Phone Number</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block mb-1">
+                  Phone Number
+                </label>
                 <input
                   type="tel"
                   required
-                  className="w-full border-b border-stone-200 focus:border-black py-1 bg-transparent text-xs sm:text-sm outline-none transition-all"
+                  placeholder="10 digit contact number"
+                  className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-2.5 text-xs text-neutral-900 outline-none transition focus:border-neutral-950"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                 />
               </div>
 
               <div>
-                <label className="text-[9px] font-bold uppercase text-stone-400 tracking-wider block mb-0.5">Project Requirements</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block mb-1">
+                  Project / Room Requirements
+                </label>
                 <textarea
                   required
                   rows={2}
-                  className="w-full border border-stone-200 focus:border-black p-2 mt-1 bg-white text-xs sm:text-sm outline-none resize-none rounded-lg transition-all"
+                  placeholder="e.g. 3BHK Modular kitchen, living room wooden paneling..."
+                  className="w-full rounded-2xl border border-neutral-200 bg-white p-3 text-xs text-neutral-900 outline-none resize-none transition focus:border-neutral-950"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                 />
               </div>
-            </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-black text-white hover:bg-red-600 py-2.5 sm:py-3 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-all disabled:opacity-40 mt-1 shadow-md"
-            >
-              {loading ? "Registering Query Schema..." : "Submit Inquiry"}
-            </button>
-          </form>
-        </div>
-      )}
-
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-full bg-neutral-950 py-3 text-xs font-bold uppercase tracking-wider text-white shadow-lg transition hover:bg-red-600 disabled:opacity-40"
+              >
+                {loading ? "Registering Blueprint Request..." : "Submit Consultation Request"}
+              </button>
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

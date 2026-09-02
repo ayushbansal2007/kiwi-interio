@@ -1,7 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { AlertCircle, BadgeCheck, ShieldCheck, ShoppingBag, Sparkles, Truck } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowRight,
+  BadgeCheck,
+  CheckCircle2,
+  ChevronRight,
+  Compass,
+  FileText,
+  Layers,
+  ShieldCheck,
+  ShoppingBag,
+  Sparkles,
+  Truck,
+  Wrench,
+  Zap,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 import useAuth from "../hooks/useAuth";
 import { apiClient } from "../services/apiClient";
@@ -32,9 +48,14 @@ function InteriorDetailPage(): ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
+  const [activeTab, setActiveTab] = useState<"specs" | "roadmap" | "materials">("specs");
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://kiwi-interio.onrender.com";
-  useDocumentTitle(interior ? `${interior.title} | Kiwi Interio` : "Design Detail | Kiwi Interio");
+  const API_BASE_URL =
+    import.meta.env.VITE_API_BASE_URL || "https://kiwi-interio.onrender.com";
+
+  useDocumentTitle(
+    interior ? `${interior.title} | Kiwi Interio` : "Design Detail | Kiwi Interio"
+  );
 
   useEffect(() => {
     if (!id) return;
@@ -74,20 +95,11 @@ function InteriorDetailPage(): ReactElement {
     };
   }, [API_BASE_URL, id]);
 
-  const quickSpecs = useMemo(
-    () => interior
-      ? [
-          ["Category", interior.category],
-          ["Subcategory", interior.subcategory || "Signature concept"],
-          ["Style", interior.style || "Curated premium"],
-          ["Room type", interior.roomType || "Residential interior"],
-        ]
-      : [],
-    [interior]
-  );
+  const isOutOfStock =
+    interior?.inStock === false || (interior?.stockCount ?? 10) <= 0;
 
   const handleAddToCart = async () => {
-    if (!interior) return;
+    if (!interior || isOutOfStock) return;
     if (!user) {
       navigate("/login");
       return;
@@ -98,172 +110,318 @@ function InteriorDetailPage(): ReactElement {
     try {
       const payload = await addToCart(interior._id, 1);
       if (!payload.success) throw new Error(payload.message || "Could not add to cart");
-      window.dispatchEvent(new Event("cart-updated"));
-      setNotice("Added to cart successfully");
-    } catch (err) {
-      setNotice(err instanceof Error ? err.message : "Could not add to cart");
+      setNotice("✓ Design concept added to your cart successfully!");
+    } catch (err: any) {
+      setNotice(err.message || "Could not add item to cart.");
     } finally {
       setBusy(false);
     }
   };
 
+  const handleBuyNow = () => {
+    if (!interior || isOutOfStock) return;
+    if (!user) {
+      navigate(`/login?redirect=/checkout?source=buy_now&id=${interior._id}&quantity=1`);
+      return;
+    }
+    navigate(`/checkout?source=buy_now&id=${interior._id}&quantity=1`);
+  };
+
   if (loading) {
-    return <div className="grid min-h-screen place-items-center bg-[#fffcf8]"><span className="h-10 w-10 animate-spin rounded-full border-2 border-red-100 border-t-red-600" /></div>;
+    return (
+      <div className="mx-auto flex min-h-[500px] max-w-7xl items-center justify-center px-4">
+        <div className="text-center">
+          <span className="mx-auto mb-4 block h-9 w-9 animate-spin rounded-full border-2 border-red-100 border-t-red-600" />
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-neutral-400">
+            Loading Architectural Blueprint
+          </p>
+        </div>
+      </div>
+    );
   }
 
   if (error || !interior) {
     return (
-      <div className="grid min-h-screen place-items-center bg-[#fffcf8] px-6 text-center">
-        <div>
-          <h2 className="text-3xl font-black tracking-[-0.05em] text-neutral-950">{error || "Design concept not found"}</h2>
-          <Link to="/interiors" className="mt-6 inline-flex rounded-full bg-neutral-950 px-6 py-3 text-sm font-bold text-white transition hover:bg-red-600">Back to collections</Link>
+      <div className="mx-auto max-w-3xl px-4 py-20 text-center">
+        <div className="rounded-[36px] border border-red-100 bg-red-50/60 p-8">
+          <AlertCircle size={32} className="mx-auto text-red-600" />
+          <h2 className="mt-4 text-2xl font-black text-neutral-950">
+            {error || "Design not found"}
+          </h2>
+          <p className="mt-2 text-xs text-neutral-500">
+            The requested interior blueprint may have been updated or moved.
+          </p>
+          <Link
+            to="/interiors"
+            className="mt-6 inline-flex rounded-full bg-neutral-950 px-6 py-3 text-xs font-bold uppercase tracking-wider text-white hover:bg-red-600"
+          >
+            Back to Collections
+          </Link>
         </div>
       </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#fffcf8] px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl space-y-8">
-        <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">
-          <Link to="/interiors" className="transition hover:text-neutral-900">Collections</Link>
-          <span>/</span>
-          <span className="text-red-600">{interior.category}</span>
-        </div>
+    <div className="bg-[#fffcf8] px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        {/* Breadcrumb Navigation */}
+        <nav className="flex items-center gap-2 text-xs font-semibold text-neutral-400">
+          <Link to="/" className="hover:text-neutral-950">Home</Link>
+          <ChevronRight size={12} />
+          <Link to="/interiors" className="hover:text-neutral-950">Collections</Link>
+          <ChevronRight size={12} />
+          <span className="text-neutral-700">{interior.category}</span>
+          <ChevronRight size={12} />
+          <span className="truncate max-w-xs font-bold text-neutral-950">{interior.title}</span>
+        </nav>
 
-        <section className="grid gap-6 rounded-[34px] border border-neutral-200/80 bg-white p-4 shadow-[0_30px_80px_-50px_rgba(0,0,0,0.4)] sm:p-6 lg:grid-cols-[1.05fr_0.95fr] lg:p-8">
-          <div className="overflow-hidden rounded-[30px] bg-neutral-100">
-            <img src={interior.image} alt={interior.title} className="h-full min-h-[380px] w-full object-cover" />
-          </div>
-
-          <div className="flex flex-col">
-            <div className="flex flex-wrap gap-2">
-              <span className="rounded-full bg-red-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-red-600">{interior.category}</span>
-              {interior.style && <span className="rounded-full bg-neutral-950 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white">{interior.style}</span>}
-            </div>
-            <h1 className="mt-5 text-4xl font-black tracking-[-0.07em] text-neutral-950 sm:text-5xl">{interior.title}</h1>
-            <p className="mt-4 text-sm leading-7 text-neutral-500 sm:text-base">{interior.description}</p>
-
-            <div className="mt-6 rounded-[28px] bg-[#fffaf6] p-5 ring-1 ring-neutral-100">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">Starting project price</p>
-                  <p className="mt-1 text-4xl font-black tracking-[-0.06em] text-neutral-950">₹{interior.price.toLocaleString("en-IN")}</p>
-                </div>
-                <div>
-                  {interior.inStock !== false && (interior.stockCount ?? 10) > 0 ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-emerald-700 ring-1 ring-emerald-200">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                      In Stock ({interior.stockCount ?? 10} available)
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-red-700 ring-1 ring-red-200">
-                      <span className="h-2 w-2 rounded-full bg-red-500" />
-                      Out of Stock
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-3 text-xs text-neutral-500">
-                <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 ring-1 ring-neutral-100"><ShieldCheck size={14} className="text-emerald-500" /> Secure booking</span>
-                <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 ring-1 ring-neutral-100"><Truck size={14} className="text-sky-500" /> Free consultation</span>
-                <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 ring-1 ring-neutral-100"><Sparkles size={14} className="text-red-500" /> AI-ready suggestions</span>
-              </div>
-            </div>
-
-            {notice && <p className="mt-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{notice}</p>}
-
-            {interior.inStock === false || (interior.stockCount ?? 10) <= 0 ? (
-              <div className="mt-6 rounded-2xl border border-red-200 bg-red-50/80 p-4 text-xs text-red-800">
-                <p className="font-bold">This design layout is temporarily out of stock for immediate delivery.</p>
-                <p className="mt-1 text-red-600">You can still consult with our studio team via the AI assistant or dashboard chat.</p>
-              </div>
-            ) : null}
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <button
-                onClick={handleAddToCart}
-                disabled={busy || interior.inStock === false || (interior.stockCount ?? 10) <= 0}
-                className={`inline-flex items-center justify-center gap-2 rounded-full border px-5 py-3.5 text-sm font-bold transition ${
-                  interior.inStock === false || (interior.stockCount ?? 10) <= 0
-                    ? "border-neutral-200 bg-neutral-100 text-neutral-400 cursor-not-allowed"
-                    : "border-neutral-200 text-neutral-800 hover:border-red-200 hover:text-red-600 disabled:opacity-50"
+        {/* Main Product Showcase Grid */}
+        <section className="mt-6 grid gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+          {/* Left Media Visual */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4 }}
+            className="space-y-4"
+          >
+            <div className="group relative overflow-hidden rounded-[38px] border border-neutral-200/80 bg-neutral-950 shadow-2xl">
+              <img
+                src={interior.image}
+                alt={interior.title}
+                className={`aspect-[4/3] w-full object-cover transition duration-700 group-hover:scale-105 ${
+                  isOutOfStock ? "grayscale-[35%] opacity-90" : ""
                 }`}
-              >
-                <ShoppingBag size={16} />
-                {interior.inStock === false || (interior.stockCount ?? 10) <= 0
-                  ? "Out of Stock"
-                  : busy
-                  ? "Adding..."
-                  : "Add to cart"}
-              </button>
-              <button
-                onClick={() =>
-                  interior.inStock !== false &&
-                  (interior.stockCount ?? 10) > 0 &&
-                  navigate(
-                    `/checkout?source=buy_now&id=${interior._id}&quantity=1`
-                  )
-                }
-                disabled={interior.inStock === false || (interior.stockCount ?? 10) <= 0}
-                className={`rounded-full px-5 py-3.5 text-sm font-bold text-white transition ${
-                  interior.inStock === false || (interior.stockCount ?? 10) <= 0
-                    ? "bg-neutral-300 cursor-not-allowed text-neutral-500"
-                    : "bg-neutral-950 hover:bg-red-600"
-                }`}
-              >
-                {interior.inStock === false || (interior.stockCount ?? 10) <= 0
-                  ? "Unavailable"
-                  : "Buy now"}
-              </button>
-            </div>
-          </div>
-        </section>
+              />
+              <div className="absolute left-5 top-5 flex flex-wrap gap-2">
+                <span className="rounded-full bg-white/95 px-3.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-red-600 shadow-md">
+                  {interior.category}
+                </span>
+                {interior.style && (
+                  <span className="rounded-full bg-neutral-950/85 px-3.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-md">
+                    {interior.style}
+                  </span>
+                )}
+              </div>
 
-        <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-          <section className="rounded-[30px] border border-neutral-200/80 bg-white p-6 shadow-sm">
-            <h2 className="text-2xl font-black tracking-[-0.04em] text-neutral-950">Quick specifications</h2>
-            <div className="mt-5 divide-y divide-neutral-100">
-              {quickSpecs.map(([label, value]) => (
-                <div key={label} className="flex items-center justify-between gap-4 py-4 text-sm">
-                  <span className="font-bold uppercase tracking-wider text-neutral-400">{label}</span>
-                  <span className="font-semibold text-neutral-800">{value}</span>
+              {isOutOfStock ? (
+                <div className="absolute right-5 top-5">
+                  <span className="rounded-full bg-red-600 px-3.5 py-1.5 text-xs font-black uppercase tracking-wider text-white shadow-lg">
+                    Out of Stock
+                  </span>
                 </div>
-              ))}
+              ) : (
+                <div className="absolute right-5 top-5">
+                  <span className="rounded-full bg-emerald-600/90 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-white shadow-lg flex items-center gap-1">
+                    <CheckCircle2 size={12} /> Verified Ready
+                  </span>
+                </div>
+              )}
             </div>
-          </section>
 
-          <section className="rounded-[30px] border border-neutral-200/80 bg-white p-6 shadow-sm">
-            <h2 className="text-2xl font-black tracking-[-0.04em] text-neutral-950">What comes with this concept</h2>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {/* Feature Trust Pills under image */}
+            <div className="grid grid-cols-3 gap-3">
               {[
-                "Design planning and modular concept detailing",
-                "Material and finish guidance from the team",
-                "Booking-ready checkout and profile history",
-                "Flexible AI assistance for related products",
-              ].map((item) => (
-                <div key={item} className="flex gap-3 rounded-[22px] bg-[#fffaf6] p-4 text-sm text-neutral-600 ring-1 ring-neutral-100">
-                  <BadgeCheck size={18} className="mt-0.5 shrink-0 text-emerald-500" />
-                  <p>{item}</p>
+                { icon: ShieldCheck, title: "10-Yr Warranty", desc: "Certified materials" },
+                { icon: Truck, title: "Free Delivery", desc: "Haryana & Delhi NCR" },
+                { icon: Wrench, title: "Turnkey Setup", desc: "Done by Kiwi architects" },
+              ].map((pill) => (
+                <div key={pill.title} className="rounded-2xl border border-neutral-200/80 bg-white p-3 text-center shadow-xs">
+                  <pill.icon size={18} className="mx-auto text-red-600" />
+                  <p className="mt-1.5 text-xs font-bold text-neutral-950">{pill.title}</p>
+                  <p className="text-[10px] text-neutral-400">{pill.desc}</p>
                 </div>
               ))}
             </div>
+          </motion.div>
 
-            {interior.tags?.length > 0 && (
-              <div className="mt-6">
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-400">Tags</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {interior.tags.map((tag) => (
-                    <span key={tag} className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-neutral-600 ring-1 ring-neutral-200">{tag}</span>
-                  ))}
+          {/* Right Product Overview & Buying Box */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="flex flex-col justify-between space-y-6"
+          >
+            <div className="space-y-4">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-red-600">
+                <Sparkles size={12} />
+                {interior.roomType || interior.subcategory || "Architectural Concept"}
+              </span>
+
+              <h1 className="text-3xl font-black tracking-[-0.05em] text-neutral-950 sm:text-4xl">
+                {interior.title}
+              </h1>
+
+              <p className="text-sm leading-relaxed text-neutral-600">
+                {interior.description}
+              </p>
+
+              {/* Pricing & Stock Card */}
+              <div className="rounded-[30px] border border-neutral-200/80 bg-white p-6 shadow-sm">
+                <div className="flex items-end justify-between">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">
+                      Turnkey Package Price
+                    </p>
+                    <p className="mt-1 text-3xl font-black tracking-[-0.06em] text-neutral-950">
+                      ₹{interior.price.toLocaleString("en-IN")}
+                    </p>
+                    <p className="text-[11px] text-neutral-400">
+                      Inclusive of GST, spatial 3D plans, fabrication & installation
+                    </p>
+                  </div>
+
+                  {/* Stock Availability */}
+                  <div className="text-right">
+                    {isOutOfStock ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-600">
+                        Out of stock
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                        In Stock ({interior.stockCount ?? 10} units)
+                      </span>
+                    )}
+                  </div>
                 </div>
+
+                {/* Feedback Notice */}
+                {notice && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-800"
+                  >
+                    {notice}
+                  </motion.div>
+                )}
+
+                {/* Primary Purchase Buttons */}
+                <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <button
+                    onClick={handleAddToCart}
+                    disabled={busy || isOutOfStock}
+                    className={`inline-flex items-center justify-center gap-2 rounded-full border px-6 py-4 text-xs font-bold uppercase tracking-wider transition shadow-sm ${
+                      isOutOfStock
+                        ? "border-neutral-200 bg-neutral-100 text-neutral-400 cursor-not-allowed"
+                        : "border-neutral-300 bg-white text-neutral-900 hover:border-red-500 hover:text-red-600"
+                    }`}
+                  >
+                    <ShoppingBag size={15} />
+                    {busy ? "Adding..." : isOutOfStock ? "Out of Stock" : "Add to Cart"}
+                  </button>
+
+                  <button
+                    onClick={handleBuyNow}
+                    disabled={isOutOfStock}
+                    className={`inline-flex items-center justify-center gap-2 rounded-full px-6 py-4 text-xs font-bold uppercase tracking-wider text-white shadow-lg transition ${
+                      isOutOfStock
+                        ? "bg-neutral-300 cursor-not-allowed text-neutral-500"
+                        : "bg-neutral-950 hover:bg-red-600 shadow-neutral-950/20"
+                    }`}
+                  >
+                    {isOutOfStock ? "Unavailable" : "Buy Concept Now"}
+                    <ArrowRight size={14} />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Tags Strip */}
+            {interior.tags && interior.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-2">
+                {interior.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-neutral-600 shadow-2xs ring-1 ring-neutral-200"
+                  >
+                    #{tag}
+                  </span>
+                ))}
               </div>
             )}
-          </section>
-        </div>
+          </motion.div>
+        </section>
+
+        {/* Tabbed Specifications & Blueprint Roadmap */}
+        <section className="mt-16 rounded-[36px] border border-neutral-200/80 bg-white p-6 shadow-sm sm:p-8">
+          {/* Tabs Selector */}
+          <div className="flex gap-2 border-b border-neutral-100 pb-4 overflow-x-auto">
+            {[
+              { id: "specs", label: "Architectural Specs", icon: Layers },
+              { id: "roadmap", label: "Execution Roadmap", icon: Compass },
+              { id: "materials", label: "Material Quality", icon: ShieldCheck },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-xs font-bold uppercase tracking-wider transition ${
+                  activeTab === tab.id
+                    ? "bg-neutral-950 text-white shadow-sm"
+                    : "text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50"
+                }`}
+              >
+                <tab.icon size={14} />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab Content */}
+          <div className="mt-6">
+            {activeTab === "specs" && (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  ["Category", interior.category],
+                  ["Subcategory", interior.subcategory || "Signature Design"],
+                  ["Design Style", interior.style || "Contemporary Minimalist"],
+                  ["Target Room", interior.roomType || "Residential Living"],
+                ].map(([label, val]) => (
+                  <div key={label} className="rounded-2xl bg-[#fffaf6] p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
+                      {label}
+                    </p>
+                    <p className="mt-1 text-base font-black text-neutral-950">{val}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {activeTab === "roadmap" && (
+              <div className="grid gap-4 sm:grid-cols-4">
+                {[
+                  { step: "01", title: "Site Measurement", time: "Day 1-2" },
+                  { step: "02", title: "3D CAD Blueprint", time: "Day 3-5" },
+                  { step: "03", title: "Factory Crafting", time: "Day 6-12" },
+                  { step: "04", title: "Turnkey Handover", time: "Day 14" },
+                ].map((s) => (
+                  <div key={s.step} className="rounded-2xl bg-[#fffaf6] p-4 border border-neutral-100">
+                    <span className="text-xs font-black text-red-600">{s.step}</span>
+                    <p className="mt-1 text-sm font-black text-neutral-950">{s.title}</p>
+                    <p className="mt-0.5 text-xs text-neutral-400">{s.time}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {activeTab === "materials" && (
+              <div className="space-y-3 text-xs leading-relaxed text-neutral-600">
+                <p>
+                  • <strong>High-Density Plywood:</strong> Grade BWP Marine plywood with anti-termite and moisture resistance.
+                </p>
+                <p>
+                  • <strong>Hardware & Fittings:</strong> Soft-close hydraulic German hinges with 10-year durability rating.
+                </p>
+                <p>
+                  • <strong>Finish Coating:</strong> Anti-scratch acrylic and matte PU lacquered surfacing.
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
       </div>
-    </main>
+    </div>
   );
 }
 

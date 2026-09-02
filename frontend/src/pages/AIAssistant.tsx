@@ -6,9 +6,16 @@ import {
   User,
   Phone,
   Trash2,
+  Sparkles,
+  ShoppingBag,
+  ArrowRight,
+  Zap,
+  CheckCircle2,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom"; // 🟢 Added for navigation
+import { useNavigate, Link } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import useDocumentTitle from "../hooks/useDocumentTitle";
+import { addToCart } from "../services/commerceService";
 
 function AIAssistant() {
   const [message, setMessage] = useState("");
@@ -16,15 +23,17 @@ function AIAssistant() {
   const [loading, setLoading] = useState(false);
   const [typingText, setTypingText] = useState("");
   const [userName, setUserName] = useState("User");
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://kiwi-interio.onrender.com";
-  
-  const navigate = useNavigate(); // 🟢 Initialized navigate hook
-  const messagesEndRef = useRef<any>(null);
-  useDocumentTitle("AI Assistant");
+  const [addingId, setAddingId] = useState<string | null>(null);
+  const [cartSuccess, setCartSuccess] = useState<string | null>(null);
 
-  // ==========================================
-  // 🔄 1. PERFECT HISTORY SYNC (INITIAL LOAD)
-  // ==========================================
+  const API_BASE_URL =
+    import.meta.env.VITE_API_BASE_URL || "https://kiwi-interio.onrender.com";
+
+  const navigate = useNavigate();
+  const messagesEndRef = useRef<any>(null);
+  useDocumentTitle("AI Interior Architect | Kiwi Interio");
+
+  // History sync on load
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
@@ -42,14 +51,14 @@ function AIAssistant() {
         if (!token) return;
 
         const res = await axios.get(`${API_BASE_URL}/api/chat-history`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         if (res.data && Array.isArray(res.data)) {
           const formattedMessages = res.data.map((chat: any) => ({
             role: chat.role,
-            content: chat.content,
-            data: chat.data || null
+            content: chat.content || chat.message,
+            data: chat.data || null,
           }));
           setMessages(formattedMessages);
         }
@@ -61,9 +70,7 @@ function AIAssistant() {
     fetchChatHistory();
   }, []);
 
-  // ==========================================
-  // ⏳ 2. FIXED TYPING EFFECT (CRASH-PROOF & CARDS SAFE)
-  // ==========================================
+  // Typing Effect
   const triggerTypingEffect = (fullText: string, rawAiReply: any) => {
     let index = 0;
     setTypingText("");
@@ -83,255 +90,333 @@ function AIAssistant() {
           {
             role: "assistant",
             content: fullText,
-            // 🟢 Structured properly so items never disappear after typing complete
-            data: rawAiReply ? {
-              items: rawAiReply.items || [],
-              tool: rawAiReply.tool || null,
-              data: rawAiReply.data || null
-            } : null,
+            data: rawAiReply
+              ? {
+                  items: rawAiReply.items || [],
+                  tool: rawAiReply.tool || null,
+                  data: rawAiReply.data || null,
+                }
+              : null,
           },
         ]);
         setTypingText("");
       }
-    }, 15);
+    }, 12);
   };
 
-  // ==========================================
-  // 📜 3. CONTROLLED AUTO-SCROLL
-  // ==========================================
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading, typingText]);
 
-  // 🧹 4. Clear Chat Handler
   const handleClearChat = () => {
-    if (window.confirm("Kya aap sach me saari chat history delete karna chahte hain?")) {
+    if (window.confirm("Do you want to reset the current AI conversation?")) {
       setMessages([]);
       setTypingText("");
     }
   };
 
-  // ==========================================
-  // 🚀 5. HANDLE SEND MESSAGE (CRASH PROOF)
-  // ==========================================
+  const handleQuickPrompt = (promptText: string) => {
+    setMessage(promptText);
+  };
+
+  const handleAddToCartQuick = async (itemId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setAddingId(itemId);
+    try {
+      await addToCart(itemId, 1);
+      setCartSuccess(itemId);
+      setTimeout(() => setCartSuccess(null), 2500);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAddingId(null);
+    }
+  };
+
   const handleGenerate = async () => {
     if (loading || !message.trim()) return;
 
     const userMessage = {
       role: "user",
       content: message,
+      data: null,
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    const currentMessage = message;
+    const currentInput = message;
     setMessage("");
+    setLoading(true);
 
     try {
-      setLoading(true);
-      setTypingText(""); 
-
       const token = localStorage.getItem("token");
-
       const res = await axios.post(
         `${API_BASE_URL}/api/ai`,
-        { message: currentMessage },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { message: currentInput },
+        {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+        }
       );
 
-      console.log("API RESPONSE:", res.data);
-      
-      const aiReply = res.data?.reply;
-      const aiMessageText = aiReply?.message || aiReply?.content || "Done";
+      const aiReply = res.data.reply;
 
-      triggerTypingEffect(aiMessageText, aiReply);
-
-    } catch (error: any) {
-      console.log("CRITICAL API ERROR:", error);
-      const serverErrorMessage = error.response?.data?.message || "Server temporarily busy hai. Kripya dubaara koshish karein.";
-      
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: serverErrorMessage,
-          data: {
-            message: serverErrorMessage,
-            items: []
-          }
-        }
-      ]);
+      if (aiReply && aiReply.message) {
+        triggerTypingEffect(aiReply.message, aiReply);
+      } else {
+        triggerTypingEffect(
+          "I have processed your request. Let me know if you would like to explore specific materials or floor plan blueprints.",
+          null
+        );
+      }
+    } catch (error) {
+      console.log("AI Chat Error:", error);
+      triggerTypingEffect(
+        "Our design server is experiencing heavy demand. Please try again in a few moments.",
+        null
+      );
     } finally {
       setLoading(false);
     }
   };
 
+  const samplePrompts = [
+    "🌟 Suggest a Scandinavian Living Room concept",
+    "🍳 Modular Kitchen blueprints under ₹1.8L",
+    "🛏️ Minimalist Master Bedroom layout",
+    "📐 Turnkey 3BHK interior cost estimation",
+  ];
+
   return (
-    <div className="h-[calc(100vh-60px)] md:h-screen bg-gradient-to-br from-slate-50 via-white to-red-50/50 flex flex-col overflow-hidden">
-      
-      {/* HEADER */}
-      <div className="border-b border-red-100 bg-white/80 backdrop-blur-xl px-4 sm:px-6 py-3 shadow-sm z-10">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="bg-gradient-to-r from-red-500 to-red-600 p-2.5 sm:p-3 rounded-[18px] sm:rounded-[22px] text-white shadow-md shadow-red-500/20">
-              <Bot size={22} className="sm:w-[26px] sm:h-[26px]" />
-            </div>
+    <div className="flex min-h-[calc(100vh-76px)] flex-col bg-[#fffcf8]">
+      {/* Top Header Bar */}
+      <div className="sticky top-[76px] z-30 border-b border-neutral-200/80 bg-white/90 px-4 py-3.5 backdrop-blur-xl sm:px-8">
+        <div className="mx-auto flex max-w-5xl items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-neutral-950 text-white shadow-md">
+              <Bot size={20} className="text-red-500" />
+            </span>
             <div>
-              <h1 className="text-base sm:text-xl font-bold flex items-center gap-1.5 text-gray-900">
-                Kiwi AI Assistant <span className="text-red-500 text-xs sm:text-sm">✨</span>
-              </h1>
-              <p className="text-gray-500 text-[10px] sm:text-xs">
-                Welcome, <span className="font-semibold text-red-600">{userName}</span> 👋 Design your space
+              <div className="flex items-center gap-2">
+                <h1 className="text-sm font-black text-neutral-950">Kiwi AI Architect</h1>
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-600">
+                  <span className="h-1.5 w-1.5 animate-ping rounded-full bg-emerald-500" />
+                  RAG Matrix Live
+                </span>
+              </div>
+              <p className="text-[11px] text-neutral-400">
+                Spatial layout recommendations & material cost planner
               </p>
             </div>
           </div>
-          
-          <div className="flex items-center gap-2 sm:gap-4">
-            <div className="hidden sm:flex items-center gap-2 bg-green-50 border border-green-100 px-3 py-1.5 rounded-full">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-xs font-semibold text-green-700">Online</span>
-            </div>
-            
-            {messages.length > 0 && (
-              <button
-                onClick={handleClearChat}
-                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all duration-200"
-                title="Clear Chat History"
-              >
-                <Trash2 size={18} />
-              </button>
-            )}
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleClearChat}
+              className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-neutral-600 transition hover:border-red-200 hover:text-red-600 shadow-xs"
+              title="Reset conversation"
+            >
+              <Trash2 size={13} />
+              <span className="hidden sm:inline">Clear Chat</span>
+            </button>
           </div>
         </div>
       </div>
 
-      {/* CHAT CONTAINER */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 pb-24 md:pb-6">
-        <div className="max-w-5xl mx-auto space-y-6">
-          {messages.length === 0 && !loading && (
-            <div className="text-center mt-12 sm:mt-16 animate-fade-in">
-              <div className="inline-flex bg-gradient-to-r from-red-500 to-red-600 text-white p-4 sm:p-5 rounded-[24px] sm:rounded-[28px] mb-4 sm:mb-6 shadow-xl shadow-red-500/10">
-                <Bot size={35} className="sm:w-[45px] sm:h-[45px]" />
-              </div>
-              <h2 className="text-2xl sm:text-4xl font-extrabold text-gray-900 tracking-tight px-2">
-                Welcome back, <span className="text-red-500">{userName}</span>!
-              </h2>
-              <p className="text-gray-500 mt-3 text-xs sm:text-base max-w-xl mx-auto leading-relaxed px-4">
-                Aap mujhse bedroom designs, modern kitchens, luxury sofas, pricing ya interiors ka budget plan karne ko bol sakte hain.
-              </p>
+      {/* Main Conversation Stream */}
+      <div className="flex-1 overflow-auto px-4 py-6 sm:px-6">
+        <div className="mx-auto max-w-5xl space-y-6">
+          {/* Welcome Screen if Empty */}
+          {messages.length === 0 && !loading && !typingText && (
+            <div className="my-10 text-center">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="mx-auto max-w-lg rounded-[36px] border border-neutral-200/80 bg-white p-8 shadow-xl"
+              >
+                <span className="mx-auto grid h-14 w-14 place-items-center rounded-3xl bg-neutral-950 text-white shadow-lg">
+                  <Sparkles size={24} className="text-red-500" />
+                </span>
+                <h2 className="mt-5 text-2xl font-black tracking-[-0.04em] text-neutral-950 sm:text-3xl">
+                  Hello, {userName}!
+                </h2>
+                <p className="mt-2 text-xs leading-relaxed text-neutral-500">
+                  I'm your Kiwi AI interior architect. Ask me anything about floor plans, budget estimation, color combinations, or specific furniture designs from our catalog.
+                </p>
+
+                {/* Quick Prompts Chips */}
+                <div className="mt-6 space-y-2 text-left">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
+                    Suggested Design Prompts:
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {samplePrompts.map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => handleQuickPrompt(p.replace(/^[^\w]+/, ""))}
+                        className="rounded-2xl border border-neutral-200/80 bg-[#fffaf6] p-3 text-left text-xs font-semibold text-neutral-700 transition hover:border-red-300 hover:bg-white hover:text-red-600"
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
             </div>
           )}
 
-          {/* RENDER CHAT MESSAGES */}
+          {/* Render Messages */}
           {messages.map((msg, index) => (
-            <div key={index} className="space-y-4">
-              {/* USER MESSAGE */}
-              {msg.role === "user" && (
-                <div className="flex justify-end">
-                  <div className="max-w-[85%] sm:max-w-[80%] bg-gradient-to-r from-gray-800 to-gray-900 text-white px-4 py-2.5 sm:px-5 sm:py-3.5 rounded-[20px] rounded-br-sm shadow-md">
-                    <div className="flex items-center gap-2 mb-1 opacity-75">
-                      <User size={12} />
-                      <span className="font-medium text-[10px]">You</span>
-                    </div>
-                    <p className="leading-relaxed text-xs sm:text-sm">{msg.content}</p>
-                  </div>
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
+              className={`flex gap-3 items-start ${
+                msg.role === "user" ? "flex-row-reverse" : "flex-row"
+              }`}
+            >
+              {/* Avatar Icon */}
+              <span
+                className={`grid h-9 w-9 shrink-0 place-items-center rounded-2xl text-xs font-black shadow-sm ${
+                  msg.role === "user"
+                    ? "bg-neutral-950 text-white"
+                    : "bg-red-600 text-white"
+                }`}
+              >
+                {msg.role === "user" ? <User size={16} /> : <Bot size={16} />}
+              </span>
+
+              {/* Message Bubble Canvas */}
+              <div
+                className={`max-w-[85%] space-y-3 ${
+                  msg.role === "user" ? "items-end" : "items-start"
+                }`}
+              >
+                <div
+                  className={`rounded-[26px] p-5 shadow-sm text-sm leading-relaxed ${
+                    msg.role === "user"
+                      ? "rounded-tr-md bg-neutral-950 text-white"
+                      : "rounded-tl-md bg-white border border-neutral-200/80 text-neutral-900"
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap">{msg.content}</p>
                 </div>
-              )}
 
-              {/* AI MESSAGE */}
-              {msg.role === "assistant" && (
-                <div className="flex gap-2 sm:gap-3 items-start">
-                  <div className="bg-gradient-to-r from-red-500 to-red-600 text-white p-2 rounded-[14px] sm:rounded-[18px] shadow-sm shrink-0">
-                    <Bot size={16} />
-                  </div>
-                  <div className="flex-1 bg-white rounded-[20px] sm:rounded-[26px] p-4 sm:p-5 shadow-sm border border-gray-100 space-y-4 overflow-hidden">
-                    {msg.content && (
-                      <div className="bg-slate-50 border border-slate-100 rounded-[14px] sm:rounded-[18px] p-3 sm:p-4">
-                        <p className="text-gray-800 text-xs sm:text-sm leading-relaxed whitespace-pre-line">
-                          {msg.content}
-                        </p>
-                      </div>
-                    )}
+                {/* Render Product Cards if Returned by AI RAG */}
+                {msg.data?.items && msg.data.items.length > 0 && (
+                  <div className="grid grid-cols-1 gap-4 pt-2 sm:grid-cols-2">
+                    {msg.data.items.map((item: any) => (
+                      <div
+                        key={item._id}
+                        onClick={() => navigate(`/interior/${item._id}`)}
+                        className="group cursor-pointer overflow-hidden rounded-[26px] border border-neutral-200/80 bg-white p-3 shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+                      >
+                        <div className="relative aspect-[4/3] overflow-hidden rounded-[20px] bg-neutral-100">
+                          <img
+                            src={item.image}
+                            alt={item.title}
+                            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                          />
+                          <span className="absolute left-3 top-3 rounded-full bg-white/95 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-red-600 shadow-xs">
+                            {item.category}
+                          </span>
+                        </div>
 
-                    {/* INTERIOR TOOLS CARDS */}
-                    {msg.data?.items && msg.data.items.length > 0 && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                        {msg.data.items.map((item: any) => (
-                          // 🟢 1. Fixed URL navigation from /interiors/ to /interior/
-                          <div 
-                            key={item._id} 
-                            onClick={() => navigate(`/interior/${item._id}`)}
-                            className="group cursor-pointer overflow-hidden rounded-[20px] border border-gray-100 bg-white shadow-sm hover:shadow-lg transition-all duration-300"
-                          >
-                            <div className="relative overflow-hidden aspect-video bg-gray-100">
-                              <img src={item.image} alt={item.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
-                              <div className="absolute top-2 left-2">
-                                <span className="bg-white/95 backdrop-blur-sm text-red-500 px-2.5 py-0.5 rounded-full text-[9px] font-bold shadow-sm capitalize">{item.category}</span>
-                              </div>
+                        <div className="pt-3">
+                          <h3 className="truncate text-base font-black text-neutral-950">
+                            {item.title}
+                          </h3>
+                          <p className="mt-1 line-clamp-2 text-xs text-neutral-500">
+                            {item.description}
+                          </p>
+
+                          <div className="mt-4 flex items-center justify-between border-t border-neutral-100 pt-3">
+                            <div>
+                              <p className="text-[9px] font-bold uppercase tracking-wider text-neutral-400">
+                                Starting Price
+                              </p>
+                              <p className="text-base font-black text-neutral-950">
+                                ₹{item.price?.toLocaleString("en-IN")}
+                              </p>
                             </div>
-                            <div className="p-3.5 space-y-1.5">
-                              <h2 className="font-bold text-base text-gray-900 line-clamp-1">{item.title}</h2>
-                              <p className="text-gray-500 text-[11px] leading-relaxed line-clamp-2">{item.description}</p>
-                              <div className="flex justify-between items-center pt-2 border-t border-gray-50">
-                                <div>
-                                  <p className="text-[9px] text-gray-400 font-medium">Starting from</p>
-                                  <p className="text-red-500 font-extrabold text-base">₹{item.price?.toLocaleString()}</p>
-                                </div>
-                                <button className="bg-gray-900 group-hover:bg-red-500 text-white text-[10px] px-3 py-1.5 rounded-lg shadow-sm transition-colors duration-200">
-                                  View Details
-                                </button>
-                              </div>
-                            </div>
+
+                            <button
+                              type="button"
+                              onClick={(e) => handleAddToCartQuick(item._id, e)}
+                              disabled={addingId === item._id}
+                              className="inline-flex items-center gap-1.5 rounded-full bg-neutral-950 px-3.5 py-2 text-[11px] font-bold uppercase tracking-wider text-white transition hover:bg-red-600 disabled:opacity-50"
+                            >
+                              {cartSuccess === item._id ? (
+                                <>
+                                  <CheckCircle2 size={13} className="text-emerald-400" />
+                                  Added
+                                </>
+                              ) : (
+                                <>
+                                  <ShoppingBag size={13} />
+                                  {addingId === item._id ? "Adding..." : "Add to Cart"}
+                                </>
+                              )}
+                            </button>
                           </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* CONTACT SUPPORT OVERLAY */}
-                    {msg.data?.tool === "contactSupport" && msg.data?.data && (
-                      <div className="bg-gradient-to-br from-red-50/50 to-white rounded-[16px] p-3 border border-red-50 space-y-2">
-                        <h3 className="text-xs font-bold text-gray-900">Direct Showroom Channels</h3>
-                        <div className="flex flex-col sm:flex-row gap-2">
-                          <a href={`tel:${msg.data.data.phone}`} className="flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-800 text-[11px] font-semibold px-3 py-2 rounded-xl border border-gray-200 shadow-sm transition-all">
-                            <Phone size={12} className="text-green-600" /> Call: {msg.data.data.phone}
-                          </a>
-                          <a href={`https://wa.me/${msg.data.data.whatsapp?.replace("+", "")}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white text-[11px] font-semibold px-3 py-2 rounded-xl shadow-sm transition-all">
-                            WhatsApp Connect
-                          </a>
                         </div>
                       </div>
-                    )}
+                    ))}
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+
+                {/* Showroom Direct Connect Tool */}
+                {msg.data?.tool === "contactSupport" && msg.data?.data && (
+                  <div className="rounded-[22px] border border-red-200 bg-red-50/70 p-4 space-y-2.5">
+                    <p className="text-xs font-bold text-red-950">
+                      Direct Showroom & Architect Line
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <a
+                        href={`tel:${msg.data.data.phone}`}
+                        className="inline-flex items-center gap-2 rounded-xl bg-white px-3.5 py-2 text-xs font-semibold text-neutral-900 shadow-xs border border-neutral-200 hover:bg-neutral-50"
+                      >
+                        <Phone size={13} className="text-emerald-600" />
+                        Call Showroom: {msg.data.data.phone}
+                      </a>
+                      <Link
+                        to="/contact"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-neutral-950 px-3.5 py-2 text-xs font-bold text-white hover:bg-red-600"
+                      >
+                        Submit Design Form →
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
           ))}
 
-          {/* LIVE TYPING STREAM */}
+          {/* Real-Time Typing Stream */}
           {typingText && (
-            <div className="flex gap-2 sm:gap-3 items-start animate-fade-in">
-              <div className="bg-gradient-to-r from-red-500 to-red-600 text-white p-2 rounded-[14px] sm:rounded-[18px] shadow-sm shrink-0">
+            <div className="flex gap-3 items-start animate-fade-in">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-red-600 text-white shadow-sm">
                 <Bot size={16} />
-              </div>
-              <div className="flex-1 bg-white rounded-[20px] sm:rounded-[26px] p-4 sm:p-5 shadow-sm border border-gray-100">
-                <div className="bg-slate-50 border border-slate-100 rounded-[14px] sm:rounded-[18px] p-3 sm:p-4">
-                  <p className="text-gray-800 text-xs sm:text-sm leading-relaxed">
-                    {typingText}
-                    <span className="inline-block w-1.5 h-3.5 bg-red-500 animate-pulse ml-1 align-middle" />
-                  </p>
-                </div>
+              </span>
+              <div className="max-w-[85%] rounded-[26px] rounded-tl-md border border-neutral-200 bg-white p-5 shadow-sm">
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-900">
+                  {typingText}
+                  <span className="inline-block h-3.5 w-1.5 animate-pulse bg-red-600 ml-1 align-middle" />
+                </p>
               </div>
             </div>
           )}
 
-          {/* LOADING STREAM */}
+          {/* Loading Indicator */}
           {loading && !typingText && (
-            <div className="flex gap-2 sm:gap-3 items-start animate-pulse">
-              <div className="bg-gradient-to-r from-red-500 to-red-600 text-white p-2 rounded-[14px] sm:rounded-[18px] shadow-sm shrink-0">
+            <div className="flex gap-3 items-start animate-pulse">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-red-600 text-white shadow-sm">
                 <Bot size={16} />
-              </div>
-              <div className="flex-1 bg-white rounded-[20px] sm:rounded-[26px] border border-gray-100 p-4 sm:p-5 shadow-sm space-y-2.5">
-                <div className="h-3 rounded bg-gray-200 w-full" />
-                <div className="h-3 rounded bg-gray-200 w-[60%]" />
+              </span>
+              <div className="max-w-md rounded-[26px] rounded-tl-md border border-neutral-200 bg-white p-5 shadow-sm space-y-2">
+                <div className="h-3.5 w-48 rounded-full bg-neutral-200" />
+                <div className="h-3 w-64 rounded-full bg-neutral-100" />
               </div>
             </div>
           )}
@@ -340,29 +425,35 @@ function AIAssistant() {
         </div>
       </div>
 
-      {/* INPUT BAR */}
-      <div className="fixed bottom-[58px] md:sticky md:bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-gray-100 p-3 sm:p-4 z-20">
-        <div className="max-w-5xl mx-auto flex gap-2 sm:gap-3 items-center">
-          <input
-            type="text"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                handleGenerate();
-              }
-            }}
-            placeholder="Ghar ke interior ke baare me kuch bhi pucho..."
-            className="flex-1 bg-gray-50 border border-gray-200 rounded-full px-4 py-2.5 sm:px-5 sm:py-3 outline-none focus:ring-2 focus:ring-red-400 focus:bg-white transition-all text-xs sm:text-sm text-gray-800 shadow-inner"
-          />
-          <button
-            onClick={handleGenerate}
-            disabled={loading || !message.trim()}
-            className="bg-gradient-to-r from-red-500 to-red-600 hover:opacity-90 active:scale-95 transition-all text-white rounded-full p-2.5 sm:p-3 shadow-md shadow-red-500/10 disabled:opacity-40 disabled:scale-100 disabled:cursor-not-allowed shrink-0"
-          >
-            <Send size={16} />
-          </button>
+      {/* Message Composer Input Bar */}
+      <div className="sticky bottom-0 z-30 border-t border-neutral-200/80 bg-white/95 p-4 backdrop-blur-xl sm:px-8">
+        <div className="mx-auto max-w-5xl">
+          <div className="flex items-center gap-2 rounded-2xl border border-neutral-200 bg-[#fffaf6] px-4 py-2.5 shadow-sm transition focus-within:border-neutral-950 focus-within:bg-white">
+            <input
+              type="text"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void handleGenerate();
+                }
+              }}
+              placeholder="Ask anything about interior blueprints, budgets, materials, colors..."
+              className="w-full bg-transparent text-xs sm:text-sm text-neutral-900 outline-none placeholder:text-neutral-400"
+            />
+            <button
+              onClick={handleGenerate}
+              disabled={loading || !message.trim()}
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-neutral-950 text-white transition hover:bg-red-600 disabled:opacity-40"
+              title="Send prompt"
+            >
+              <Send size={15} />
+            </button>
+          </div>
+          <p className="mt-2 text-center text-[10px] text-neutral-400">
+            Kiwi AI Assistant generates real-time inventory recommendations from verified architectural catalogs.
+          </p>
         </div>
       </div>
     </div>
